@@ -1,0 +1,180 @@
+@extends('layouts.app')
+@section('title', 'Tableau de bord DRH')
+@section('page-title', 'Tableau de bord — DRH')
+
+@section('content')
+
+{{-- KPI --}}
+<div class="kpi-grid mb-24">
+    <div class="kpi-card kpi-blue">
+        <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+        <div class="kpi-body">
+            <div class="kpi-value">{{ $stats['personnel_actif'] }}</div>
+            <div class="kpi-label">Agents actifs</div>
+            @php
+                $hDrh = \App\Models\Personnel::personnelPrincipal()->where('statut','actif')->where('sexe','M')->count();
+                $fDrh = \App\Models\Personnel::personnelPrincipal()->where('statut','actif')->where('sexe','F')->count();
+            @endphp
+            <div class="kpi-hf">
+                <span class="kpi-hf-h">{{ $hDrh }} H</span>
+                <span class="kpi-hf-sep">·</span>
+                <span class="kpi-hf-f">{{ $fDrh }} F</span>
+            </div>
+        </div>
+    </div>
+    <div class="kpi-card kpi-amber">
+        <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <div class="kpi-body"><div class="kpi-value">{{ $stats['en_attente'] }}</div><div class="kpi-label">En attente de décision</div></div>
+        @if($stats['en_attente'] > 0) <div class="kpi-trend warn">À traiter</div> @endif
+    </div>
+    <div class="kpi-card kpi-green">
+        <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/></svg></div>
+        <div class="kpi-body"><div class="kpi-value">{{ $stats['conges_en_cours'] }}</div><div class="kpi-label">Congés en cours</div></div>
+    </div>
+    <div class="kpi-card kpi-purple">
+        <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+        <div class="kpi-body"><div class="kpi-value">{{ \App\Models\Stagiaire::where('statut','en_cours')->count() }}</div><div class="kpi-label">Stagiaires en cours</div></div>
+    </div>
+</div>
+
+{{-- Actions rapides DRH --}}
+<div class="table-toolbar" style="margin-top:-8px; margin-bottom:24px;">
+    <div></div>
+    <div class="toolbar-actions">
+        <a href="{{ route('personnel.import.form') }}" class="btn-ghost btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import Excel
+        </a>
+        <a href="{{ route('personnel.create') }}" class="btn-primary btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Ajouter un agent
+        </a>
+    </div>
+</div>
+
+<div class="dash-two-col">
+
+    {{-- Congés en attente --}}
+    <div class="dash-card">
+        <div class="card-header">
+            <h3>Congés en attente</h3>
+            <span class="badge badge-warn">{{ $congesEnAttente->count() }}</span>
+        </div>
+        @if($congesEnAttente->isEmpty())
+            <p class="empty-inline">Aucun congé en attente.</p>
+        @else
+        <div class="attente-list">
+            @foreach($congesEnAttente as $c)
+            <a href="{{ route('conges.show', $c) }}" class="attente-item">
+                <div class="agent-avatar av-sm">{{ $c->personnel->initiales }}</div>
+                <div class="attente-info">
+                    <span class="attente-name">{{ $c->personnel->nom_complet }}</span>
+                    <span class="attente-meta">
+                        {{ $c->getTypeCongeLabel() }} · {{ $c->nb_jours_demandes }}j
+                        · du {{ $c->date_debut->format('d/m') }}
+                    </span>
+                </div>
+                <span class="badge badge-warn">Décider</span>
+            </a>
+            @endforeach
+        </div>
+        @endif
+    </div>
+
+    <div class="dash-col-right">
+
+        {{-- Absences en attente --}}
+        <div class="dash-card">
+            <div class="card-header">
+                <h3>Absences en attente</h3>
+                <span class="badge badge-warn">{{ $absencesEnAttente->count() }}</span>
+            </div>
+            @if($absencesEnAttente->isEmpty())
+                <p class="empty-inline">Aucune absence en attente.</p>
+            @else
+            <div class="attente-list">
+                @foreach($absencesEnAttente as $a)
+                <a href="{{ route('absences.show', $a) }}" class="attente-item">
+                    <div class="agent-avatar av-sm">{{ $a->personnel->initiales }}</div>
+                    <div class="attente-info">
+                        <span class="attente-name">{{ $a->personnel->nom_complet }}</span>
+                        <span class="attente-meta">{{ $a->getTypeLabel() }} · {{ $a->nb_jours }}j</span>
+                    </div>
+                    <span class="badge badge-warn">Décider</span>
+                </a>
+                @endforeach
+            </div>
+            @endif
+        </div>
+
+        {{-- Demandes en attente --}}
+        <div class="dash-card">
+            <div class="card-header">
+                <h3>Autres demandes en attente</h3>
+                <span class="badge badge-warn">{{ $demandesEnAttente->count() }}</span>
+            </div>
+            @if($demandesEnAttente->isEmpty())
+                <p class="empty-inline">Aucune demande en attente.</p>
+            @else
+            <div class="attente-list">
+                @foreach($demandesEnAttente as $d)
+                <a href="{{ route('demandes.show', $d) }}" class="attente-item">
+                    <div class="agent-avatar av-sm">{{ $d->personnel->initiales }}</div>
+                    <div class="attente-info">
+                        <span class="attente-name">{{ $d->personnel->nom_complet }}</span>
+                        <span class="attente-meta">{{ $d->type_label }}</span>
+                    </div>
+                    <span class="badge badge-warn">Décider</span>
+                </a>
+                @endforeach
+            </div>
+            @endif
+        </div>
+
+    </div>
+</div>
+
+{{-- Accès rapides — le DRH a maintenant les mêmes droits de création --}}
+<div class="dash-card" style="margin-top:0">
+    <div class="card-header"><h3>Accès rapides</h3></div>
+    <div class="quick-links">
+        <a href="{{ route('personnel.index') }}" class="ql-item">
+            <div class="ql-icon ql-blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+            <span>Personnel</span>
+        </a>
+        <a href="{{ route('personnel.create') }}" class="ql-item">
+            <div class="ql-icon ql-green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
+            <span>Ajouter un agent</span>
+        </a>
+        <a href="{{ route('personnel.import.form') }}" class="ql-item">
+            <div class="ql-icon" style="background:#ede9fe;color:#7c3aed"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+            <span>Import Excel</span>
+        </a>
+        <a href="{{ route('conges.create') }}" class="ql-item">
+            <div class="ql-icon ql-amber"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <span>Nouveau congé</span>
+        </a>
+        <a href="{{ route('absences.create') }}" class="ql-item">
+            <div class="ql-icon ql-purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <span>Nouvelle absence</span>
+        </a>
+        <a href="{{ route('demandes.create') }}" class="ql-item">
+            <div class="ql-icon ql-teal"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <span>Nouvelle demande</span>
+        </a>
+        <a href="{{ route('drh.historique') }}" class="ql-item">
+            <div class="ql-icon ql-green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg></div>
+            <span>Mon historique</span>
+        </a>
+        <a href="{{ route('rapports.personnel') }}" class="ql-item">
+            <div class="ql-icon" style="background:var(--col-red-lt);color:var(--col-red)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></div>
+            <span>Rapports PDF</span>
+        </a>
+        <a href="{{ route('config-rh.index') }}" class="ql-item">
+            <div class="ql-icon" style="background:var(--col-primary-lt);color:var(--col-primary)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></div>
+            <span>Configuration</span>
+        </a>
+    </div>
+</div>
+
+@endsection
