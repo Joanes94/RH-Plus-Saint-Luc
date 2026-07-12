@@ -34,6 +34,7 @@ class Conge extends Model
         return match($this->type_conge) {
             'administratif' => 'Congé administratif',
             'technique'     => 'Congé technique',
+            'maternite'     => 'Congé de maternité',
             default         => $this->type_conge,
         };
     }

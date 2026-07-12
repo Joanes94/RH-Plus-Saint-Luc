@@ -59,7 +59,7 @@ class Evaluation extends Model
 
     public function isEditable(): bool
     {
-        return in_array($this->statut, ['brouillon', 'rejete']);
+        return $this->statut === 'brouillon';
     }
 
     public function isSubmittable(): bool

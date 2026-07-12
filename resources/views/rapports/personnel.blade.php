@@ -4,6 +4,11 @@
 
 @section('content')
 
+<div class="rapport-tabs">
+    <a href="{{ route('rapports.personnel') }}" class="rapport-tab rapport-tab-active">📋 Situation actuelle</a>
+    <a href="{{ route('rapports.historique') }}" class="rapport-tab">🕒 Rapport historique (année / mois)</a>
+</div>
+
 <div class="rapport-layout">
 
     {{-- ── Panneau filtres ──────────────────────────────────────── --}}
@@ -288,7 +293,7 @@
                         <td>{{ $p->sexe === 'F' ? '👩 Femme' : '👨 Homme' }}</td>
                         <td style="font-size:.8rem">{{ $p->service ?: '—' }}</td>
                         <td style="font-size:.8rem">{{ $p->corporation ?: '—' }}</td>
-                        <td>@if($p->type_contrat)<span class="contrat-tag contrat-{{ strtolower($p->type_contrat) }}">{{ $p->type_contrat }}</span>@else —@endif</td>
+                        <td>@if($p->type_contrat_actuel)<span class="contrat-tag contrat-{{ strtolower($p->type_contrat_actuel) }}">{{ $p->type_contrat_actuel }}</span>@else —@endif</td>
                         <td><span class="statut-pill statut-{{ $p->statut }}">{{ $p->statut_label }}</span></td>
                     </tr>
                     @endforeach
@@ -313,6 +318,15 @@
 
 {{-- Styles additionnels --}}
 <style>
+    .rapport-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+    .rapport-tab {
+        padding: 9px 16px; border-radius: 8px; font-size: .85rem; font-weight: 600;
+        color: var(--col-text-2); background: var(--col-bg-2); border: 1px solid var(--col-border-lg);
+        text-decoration: none; transition: background .15s, color .15s;
+    }
+    .rapport-tab:hover { background: var(--col-border); }
+    .rapport-tab-active { background: var(--col-primary); color: #fff; border-color: var(--col-primary); }
+
     .rapport-layout {
         display: grid;
         grid-template-columns: 300px 1fr;

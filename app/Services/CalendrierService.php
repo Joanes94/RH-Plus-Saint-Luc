@@ -86,6 +86,34 @@ class CalendrierService
         return $count;
     }
 
+    /** Nombre de jours calendaires du congé de maternité (droit béninois : 14 semaines). */
+    public const JOURS_CONGE_MATERNITE = 98;
+
+    /**
+     * Congé de maternité : 98 jours CALENDAIRES (14 semaines) à compter de la
+     * date de début (incluse). La date de reprise est le premier jour
+     * ouvrable suivant le dernier jour du congé.
+     */
+    public function calculerMaternite(Carbon $dateDebut): array
+    {
+        $dernierJour = $dateDebut->copy()->addDays(self::JOURS_CONGE_MATERNITE - 1);
+
+        $feries = array_merge(
+            $this->feriesHash($dernierJour->year),
+            $this->feriesHash($dernierJour->year + 1)
+        );
+
+        $reprise = $dernierJour->copy()->addDay();
+        while (!$this->estOuvrable($reprise, $feries)) {
+            $reprise->addDay();
+        }
+
+        return [
+            'dernier_jour' => $dernierJour,
+            'date_reprise' => $reprise,
+        ];
+    }
+
     /**
      * Calcule le nombre de jours de congés acquis selon ancienneté ISD.
      * Base : 24 jours ouvrables.
@@ -121,9 +149,12 @@ class CalendrierService
         $acquis = $this->joursAcquisParAnciennete($entreeISD);
 
         // ── Congés approuvés cette année (déjà en jours ouvrables) ────────────
+        // La maternité est un droit à part : elle ne doit pas être déduite du
+        // solde de congés administratifs/techniques.
         $congesPris = (int) \App\Models\Conge::where('personnel_id', $personnel->id)
             ->where('annee', $annee)
             ->where('statut', 'approuve')
+            ->where('type_conge', '!=', 'maternite')
             ->sum('nb_jours_demandes');
 
         // ── Absences déductibles approuvées cette année ───────────────────────

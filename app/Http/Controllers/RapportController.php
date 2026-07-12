@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Personnel;
+use App\Models\Contrat;
 use App\Models\ConfigRh;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -21,18 +22,18 @@ class RapportController extends Controller
             'total'     => (clone $query)->count(),
             'hommes'    => (clone $query)->where('sexe', 'M')->count(),
             'femmes'    => (clone $query)->where('sexe', 'F')->count(),
-            'cdi'       => (clone $query)->where('type_contrat', 'CDI')->count(),
-            'cdd'       => (clone $query)->where('type_contrat', 'CDD')->count(),
+            'cdi'       => (clone $query)->whereHas('contrats', fn ($q) => $q->where('type_contrat', 'CDI'))->count(),
+            'cdd'       => (clone $query)->whereHas('contrats', fn ($q) => $q->where('type_contrat', 'CDD'))->count(),
             'actifs'    => (clone $query)->where('statut', 'actif')->count(),
             'inactifs'  => (clone $query)->where('statut', 'inactif')->count(),
             'en_conge'  => (clone $query)->where('statut', 'en_conge')->count(),
             'retraites' => (clone $query)->where('statut', 'retraite')->count(),
-            'stagiaires' => (clone $query)->where('type_contrat', 'Stagiaire')->count(),
-            'prestataires' => (clone $query)->where('type_contrat', 'Prestataire')->count(),
+            'stagiaires' => (clone $query)->whereHas('contrats', fn ($q) => $q->where('type_contrat', 'Stagiaire'))->count(),
+            'prestataires' => (clone $query)->whereHas('contrats', fn ($q) => $q->where('type_contrat', 'Prestataire'))->count(),
         ];
 
         // Aperçu des 5 premiers résultats
-        $apercu = (clone $query)->orderBy('nom')->take(5)->get();
+        $apercu = (clone $query)->with('contrats')->orderBy('nom')->take(5)->get();
 
         return view('rapports.personnel', [
             'services'     => Personnel::services(),
@@ -50,17 +51,17 @@ class RapportController extends Controller
     public function personnelPdf(Request $request)
     {
         $query      = $this->buildQuery($request);
-        $personnels = $query->orderBy('nom')->orderBy('prenoms')->get();
+        $personnels = $query->with('contrats')->orderBy('nom')->orderBy('prenoms')->get();
 
         // Stats globales filtrées
         $stats = [
             'total'        => $personnels->count(),
             'hommes'       => $personnels->where('sexe', 'M')->count(),
             'femmes'       => $personnels->where('sexe', 'F')->count(),
-            'cdi'          => $personnels->where('type_contrat', 'CDI')->count(),
-            'cdd'          => $personnels->where('type_contrat', 'CDD')->count(),
-            'stagiaires'   => $personnels->where('type_contrat', 'Stagiaire')->count(),
-            'prestataires' => $personnels->where('type_contrat', 'Prestataire')->count(),
+            'cdi'          => $personnels->filter(fn ($p) => $p->type_contrat_actuel === 'CDI')->count(),
+            'cdd'          => $personnels->filter(fn ($p) => $p->type_contrat_actuel === 'CDD')->count(),
+            'stagiaires'   => $personnels->filter(fn ($p) => $p->type_contrat_actuel === 'Stagiaire')->count(),
+            'prestataires' => $personnels->filter(fn ($p) => $p->type_contrat_actuel === 'Prestataire')->count(),
             'actifs'       => $personnels->where('statut', 'actif')->count(),
             'inactifs'     => $personnels->where('statut', 'inactif')->count(),
             'en_conge'     => $personnels->where('statut', 'en_conge')->count(),
@@ -106,6 +107,120 @@ class RapportController extends Controller
         ]);
     }
 
+    // ── Rapport historique (Année / Mois) ──────────────────────────────────────
+    // Répond à : "en [mois] [année], qui travaillait ici, dans quel service, en
+    // quelle qualité ?" — basé sur les périodes réelles des contrats, pas sur
+    // la situation actuelle du personnel.
+
+    public function historique(Request $request)
+    {
+        $request->validate([
+            'annee' => 'nullable|integer|min:2000|max:2100',
+            'mois'  => 'nullable|integer|min:1|max:12',
+        ]);
+        $request->merge(['annee' => $request->input('annee', now()->year)]);
+
+        [$debut, $fin] = $this->periode($request);
+        $contrats = $this->buildHistoriqueQuery($request, $debut, $fin)->get();
+
+        return view('rapports.historique', [
+            'services'  => Personnel::services(),
+            'contratsTypes' => Personnel::typesContrat(),
+            'filters'   => $request->only('annee', 'mois', 'service', 'type_contrat'),
+            'annee'     => (int) $request->annee,
+            'mois'      => $request->filled('mois') ? (int) $request->mois : null,
+            'periode_label' => $this->periodeLabel($request, $debut, $fin),
+            'contrats'  => $contrats,
+            'stats'     => $this->statsHistorique($contrats),
+        ]);
+    }
+
+    public function historiquePdf(Request $request)
+    {
+        $request->validate([
+            'annee' => 'nullable|integer|min:2000|max:2100',
+            'mois'  => 'nullable|integer|min:1|max:12',
+        ]);
+        $request->merge(['annee' => $request->input('annee', now()->year)]);
+
+        [$debut, $fin] = $this->periode($request);
+        $contrats = $this->buildHistoriqueQuery($request, $debut, $fin)->get();
+
+        $logoPath  = public_path('images/letterhead/logo_archidiocese.jpeg');
+        $evePath   = public_path('images/letterhead/photo_eveque.jpeg');
+        $logoB64   = file_exists($logoPath) ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($logoPath)) : null;
+        $eveB64    = file_exists($evePath)  ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($evePath))  : null;
+
+        return view('rapports.historique_pdf', [
+            'contrats'      => $contrats,
+            'stats'         => $this->statsHistorique($contrats),
+            'periode_label' => $this->periodeLabel($request, $debut, $fin),
+            'filters'       => $request->only('annee', 'mois', 'service', 'type_contrat'),
+            'date_rapport'  => now()->isoFormat('D MMMM YYYY'),
+            'organisation'  => ConfigRh::get('organisation', 'Institutions Sanitaires Diocésaines'),
+            'ville'         => ConfigRh::get('ville', 'Cotonou'),
+            'drh_nom'       => ConfigRh::get('drh_nom', ''),
+            'logo_b64'      => $logoB64,
+            'eveque_b64'    => $eveB64,
+        ]);
+    }
+
+    /** Bornes [début, fin] de la période sélectionnée (mois précis ou année entière). */
+    private function periode(Request $request): array
+    {
+        $annee = (int) $request->annee;
+
+        if ($request->filled('mois')) {
+            $debut = Carbon::create($annee, (int) $request->mois, 1)->startOfMonth();
+            $fin   = $debut->copy()->endOfMonth();
+        } else {
+            $debut = Carbon::create($annee, 1, 1)->startOfYear();
+            $fin   = Carbon::create($annee, 12, 31)->endOfYear();
+        }
+
+        return [$debut, $fin];
+    }
+
+    private function periodeLabel(Request $request, Carbon $debut, Carbon $fin): string
+    {
+        return $request->filled('mois')
+            ? ucfirst($debut->locale('fr')->isoFormat('MMMM YYYY'))
+            : 'Année ' . $debut->year;
+    }
+
+    /**
+     * Contrats dont la période chevauche [début, fin] : ils représentent le
+     * personnel réellement en poste durant la période demandée.
+     */
+    private function buildHistoriqueQuery(Request $request, Carbon $debut, Carbon $fin)
+    {
+        $query = Contrat::query()
+            ->with('personnel')
+            ->whereHas('personnel')
+            ->where('date_debut', '<=', $fin)
+            ->where(function ($q) use ($debut) {
+                $q->whereNull('date_fin')->orWhere('date_fin', '>=', $debut);
+            });
+
+        if ($request->filled('service'))      $query->where('service', $request->service);
+        if ($request->filled('type_contrat')) $query->where('type_contrat', $request->type_contrat);
+
+        return $query->orderBy('date_debut');
+    }
+
+    private function statsHistorique($contrats): array
+    {
+        $personnesUniques = $contrats->pluck('personnel_id')->unique();
+
+        return [
+            'total_contrats'   => $contrats->count(),
+            'total_personnes'  => $personnesUniques->count(),
+            'hommes'           => $contrats->unique('personnel_id')->filter(fn ($c) => $c->personnel?->sexe === 'M')->count(),
+            'femmes'           => $contrats->unique('personnel_id')->filter(fn ($c) => $c->personnel?->sexe === 'F')->count(),
+            'par_service'      => $contrats->groupBy(fn ($c) => $c->service ?: 'Non renseigné')->map->count()->sortDesc(),
+        ];
+    }
+
     // ── Helpers privés ────────────────────────────────────────────────────────
 
     private function buildQuery(Request $request)
@@ -118,7 +233,13 @@ class RapportController extends Controller
         if ($request->filled('corporation'))  $query->where('corporation', $request->corporation);
         if ($request->filled('sexe'))         $query->where('sexe', $request->sexe);
         if ($request->filled('statut'))       $query->where('statut', $request->statut);
-        if ($request->filled('type_contrat')) $query->where('type_contrat', $request->type_contrat);
+        if ($request->filled('type_contrat')) {
+            $t = $request->type_contrat;
+            $query->where(function ($q) use ($t) {
+                $q->whereHas('contrats', fn ($cq) => $cq->where('type_contrat', $t))
+                  ->orWhere('type_contrat', $t);
+            });
+        }
 
         return $query;
     }

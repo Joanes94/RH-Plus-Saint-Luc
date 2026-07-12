@@ -42,6 +42,18 @@
             </div>
         </div>
         <div class="form-group fg-2">
+            <label>Nationalité</label>
+            <div class="input-wrapper">
+                <input type="text" name="nationalite" value="{{ old('nationalite', $personnel->nationalite ?? 'Béninoise') }}" placeholder="Béninoise">
+            </div>
+        </div>
+        <div class="form-group fg-3">
+            <label>Résidence habituelle</label>
+            <div class="input-wrapper">
+                <input type="text" name="residence" value="{{ old('residence', $personnel->residence ?? '') }}" placeholder="Ex: Missèkplé Ste Rita">
+            </div>
+        </div>
+        <div class="form-group fg-2">
             <label>Sexe <span class="req">*</span></label>
             <div class="input-wrapper select-wrapper">
                 <select name="sexe" class="{{ $errors->has('sexe') ? 'is-invalid' : '' }}">
@@ -137,23 +149,6 @@
             </div>
         </div>
         <div class="form-group fg-2">
-            <label>Type de contrat</label>
-            <div class="input-wrapper select-wrapper">
-                <select name="type_contrat">
-                    <option value="">—</option>
-                    @foreach($contrats as $c)
-                        <option value="{{ $c }}" {{ old('type_contrat', $personnel->type_contrat ?? '') === $c ? 'selected' : '' }}>{{ $c }}</option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        <div class="form-group fg-2">
-            <label>Catégorie / Échelon</label>
-            <div class="input-wrapper">
-                <input type="text" name="categorie_echelon" value="{{ old('categorie_echelon', $personnel->categorie_echelon ?? '') }}" placeholder="Ex: C2-E1">
-            </div>
-        </div>
-        <div class="form-group fg-2">
             <label>Statut</label>
             <div class="input-wrapper select-wrapper">
                 <select name="statut">
@@ -173,17 +168,17 @@
         <div class="section-icon section-amber">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </div>
-        <h3>Dates & Contrat</h3>
+        <h3>Dates</h3>
     </div>
     <div class="form-grid">
         <div class="form-group fg-2"><label>Date d'embauche dans le Centre</label><div class="input-wrapper"><input type="date" name="date_embauche_centre" value="{{ old('date_embauche_centre', isset($personnel->date_embauche_centre) ? $personnel->date_embauche_centre->format('Y-m-d') : '') }}"></div></div>
         <div class="form-group fg-2"><label>Date d'embauche dans les ISD</label><div class="input-wrapper"><input type="date" name="date_embauche_isd" value="{{ old('date_embauche_isd', isset($personnel->date_embauche_isd) ? $personnel->date_embauche_isd->format('Y-m-d') : '') }}"></div></div>
         <div class="form-group fg-2"><label>N° CNSS</label><div class="input-wrapper"><input type="text" name="numero_cnss" value="{{ old('numero_cnss', $personnel->numero_cnss ?? '') }}" placeholder="CN123456" class="mono-input"></div></div>
-        <div class="form-group fg-2"><label>Date de fin de contrat</label><div class="input-wrapper"><input type="date" name="date_fin_contrat" value="{{ old('date_fin_contrat', isset($personnel->date_fin_contrat) ? $personnel->date_fin_contrat->format('Y-m-d') : '') }}"></div></div>
         <div class="form-group fg-2"><label>Date de départ à la retraite</label><div class="input-wrapper"><input type="date" name="date_depart_retraite" value="{{ old('date_depart_retraite', isset($personnel->date_depart_retraite) ? $personnel->date_depart_retraite->format('Y-m-d') : '') }}"></div></div>
-        <div class="form-group fg-2"><label>Date de débauchage</label><div class="input-wrapper"><input type="date" name="date_debauchage" value="{{ old('date_debauchage', isset($personnel->date_debauchage) ? $personnel->date_debauchage->format('Y-m-d') : '') }}"></div></div>
-        <div class="form-group fg-5"><label>Motif de débauchage</label><div class="input-wrapper"><input type="text" name="motif_debauchage" value="{{ old('motif_debauchage', $personnel->motif_debauchage ?? '') }}" placeholder="Ex: Démission, Licenciement..."></div></div>
     </div>
+    <p style="font-size:.78rem;color:var(--col-text-3);margin-top:6px">
+        Le type de contrat, la catégorie/échelon, la date de fin et le débauchage se gèrent désormais par contrat, depuis la fiche du personnel une fois enregistré.
+    </p>
 </div>
 
 {{-- SECTION 4 : CONGÉ --}}
@@ -227,3 +222,90 @@
         <div class="form-group fg-2"><label>Téléphone</label><div class="input-wrapper"><input type="tel" name="contact_urgence_telephone" value="{{ old('contact_urgence_telephone', $personnel->contact_urgence_telephone ?? '') }}" placeholder="+229 97 00 00 00"></div></div>
     </div>
 </div>
+
+{{-- SECTION 7 : AYANTS DROITS --}}
+<div class="form-section">
+    <div class="form-section-header">
+        <div class="section-icon section-purple">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Ayants droits</h3>
+    </div>
+
+    {{-- Conjoint(s) --}}
+    <p style="font-weight:600;font-size:.85rem;margin-bottom:8px">Conjoint(s)</p>
+    <div id="conjoints-list">
+        @php $oldConjoints = old('conjoints', isset($personnel) ? $personnel->conjoints->map(fn($c) => ['nom' => $c->nom, 'prenom' => $c->prenom])->toArray() : []); @endphp
+        @forelse($oldConjoints as $i => $cj)
+        <div class="form-grid ayant-droit-row">
+            <div class="form-group fg-3"><label>Nom</label><div class="input-wrapper"><input type="text" name="conjoints[{{ $i }}][nom]" value="{{ $cj['nom'] ?? '' }}" placeholder="Nom du conjoint"></div></div>
+            <div class="form-group fg-3"><label>Prénom</label><div class="input-wrapper"><input type="text" name="conjoints[{{ $i }}][prenom]" value="{{ $cj['prenom'] ?? '' }}" placeholder="Prénom du conjoint"></div></div>
+            <div class="form-group fg-1 fg-align-center"><button type="button" class="btn-ghost btn-sm" onclick="this.closest('.ayant-droit-row').remove()">Retirer</button></div>
+        </div>
+        @empty
+        @endforelse
+    </div>
+    <button type="button" class="btn-ghost btn-sm" onclick="ajouterConjoint()" style="margin-bottom:20px">+ Ajouter un conjoint</button>
+
+    {{-- Enfants --}}
+    <p style="font-weight:600;font-size:.85rem;margin:16px 0 8px">Enfants <span style="font-weight:400;color:var(--col-text-3)">(ayants droit jusqu'à 21 ans)</span></p>
+    <div id="enfants-list">
+        @php $oldEnfants = old('enfants', isset($personnel) ? $personnel->enfants->map(fn($e) => ['nom'=>$e->nom,'prenom'=>$e->prenom,'sexe'=>$e->sexe,'date_naissance'=>optional($e->date_naissance)->format('Y-m-d')])->toArray() : []); @endphp
+        @forelse($oldEnfants as $i => $en)
+        <div class="form-grid ayant-droit-row">
+            <div class="form-group fg-2"><label>Nom</label><div class="input-wrapper"><input type="text" name="enfants[{{ $i }}][nom]" value="{{ $en['nom'] ?? '' }}" placeholder="Nom"></div></div>
+            <div class="form-group fg-2"><label>Prénom</label><div class="input-wrapper"><input type="text" name="enfants[{{ $i }}][prenom]" value="{{ $en['prenom'] ?? '' }}" placeholder="Prénom"></div></div>
+            <div class="form-group fg-1">
+                <label>Sexe</label>
+                <div class="input-wrapper select-wrapper">
+                    <select name="enfants[{{ $i }}][sexe]">
+                        <option value="M" {{ ($en['sexe'] ?? '') === 'M' ? 'selected' : '' }}>M</option>
+                        <option value="F" {{ ($en['sexe'] ?? '') === 'F' ? 'selected' : '' }}>F</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group fg-2"><label>Date de naissance</label><div class="input-wrapper"><input type="date" name="enfants[{{ $i }}][date_naissance]" value="{{ $en['date_naissance'] ?? '' }}"></div></div>
+            <div class="form-group fg-1 fg-align-center"><button type="button" class="btn-ghost btn-sm" onclick="this.closest('.ayant-droit-row').remove()">Retirer</button></div>
+        </div>
+        @empty
+        @endforelse
+    </div>
+    <button type="button" class="btn-ghost btn-sm" onclick="ajouterEnfant()">+ Ajouter un enfant</button>
+</div>
+
+<script>
+    let conjointIndex = document.querySelectorAll('#conjoints-list .ayant-droit-row').length;
+    let enfantIndex   = document.querySelectorAll('#enfants-list .ayant-droit-row').length;
+
+    function ajouterConjoint() {
+        const div = document.createElement('div');
+        div.className = 'form-grid ayant-droit-row';
+        div.innerHTML = `
+            <div class="form-group fg-3"><label>Nom</label><div class="input-wrapper"><input type="text" name="conjoints[${conjointIndex}][nom]" placeholder="Nom du conjoint"></div></div>
+            <div class="form-group fg-3"><label>Prénom</label><div class="input-wrapper"><input type="text" name="conjoints[${conjointIndex}][prenom]" placeholder="Prénom du conjoint"></div></div>
+            <div class="form-group fg-1 fg-align-center"><button type="button" class="btn-ghost btn-sm" onclick="this.closest('.ayant-droit-row').remove()">Retirer</button></div>`;
+        document.getElementById('conjoints-list').appendChild(div);
+        conjointIndex++;
+    }
+
+    function ajouterEnfant() {
+        const div = document.createElement('div');
+        div.className = 'form-grid ayant-droit-row';
+        div.innerHTML = `
+            <div class="form-group fg-2"><label>Nom</label><div class="input-wrapper"><input type="text" name="enfants[${enfantIndex}][nom]" placeholder="Nom"></div></div>
+            <div class="form-group fg-2"><label>Prénom</label><div class="input-wrapper"><input type="text" name="enfants[${enfantIndex}][prenom]" placeholder="Prénom"></div></div>
+            <div class="form-group fg-1">
+                <label>Sexe</label>
+                <div class="input-wrapper select-wrapper">
+                    <select name="enfants[${enfantIndex}][sexe]">
+                        <option value="M">M</option>
+                        <option value="F">F</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group fg-2"><label>Date de naissance</label><div class="input-wrapper"><input type="date" name="enfants[${enfantIndex}][date_naissance]"></div></div>
+            <div class="form-group fg-1 fg-align-center"><button type="button" class="btn-ghost btn-sm" onclick="this.closest('.ayant-droit-row').remove()">Retirer</button></div>`;
+        document.getElementById('enfants-list').appendChild(div);
+        enfantIndex++;
+    }
+</script>

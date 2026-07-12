@@ -15,6 +15,7 @@
 <div class="conge-form-main">
 
 <form method="GET" id="docForm" action="">
+    @csrf
 
     {{-- TYPE DE DOCUMENT --}}
     <div class="form-section">
@@ -160,21 +161,6 @@ function genererDoc() {
         : '{{ route("stagiaires.documents.attestation", $stagiaire) }}';
     form.method = 'POST';
     form.submit();
-
-    // Sélectionner les labels radio pour type-picker
-    document.querySelectorAll('.type-picker-item').forEach(el => el.classList.remove('selected'));
-    docType.closest('.type-picker-item')?.classList.add('selected');
-
-    const base = docType.value === 'autorisation'
-        ? '{{ route("stagiaires.documents.autorisation", $stagiaire) }}'
-        : '{{ route("stagiaires.documents.attestation", $stagiaire) }}';
-
-    const params = new URLSearchParams();
-    params.set('type', stageType?.value || 'professionnel');
-    services.forEach(s => params.append('services[]', s));
-    if (ref) params.set('reference', ref);
-
-    window.open(base + '?' + params.toString(), '_blank');
 }
 
 // Highlight radio pickers

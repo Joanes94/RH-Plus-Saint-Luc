@@ -254,7 +254,7 @@
                 </td>
                 <td>{{ $p->service ?: '—' }}</td>
                 <td>{{ $p->corporation ?: '—' }}</td>
-                <td>{{ $p->type_contrat ?: '—' }}</td>
+                <td>{{ $p->type_contrat_actuel ?: '—' }}</td>
                 <td style="white-space:nowrap;font-size:9px">{{ $p->date_embauche_centre ? $p->date_embauche_centre->format('d/m/Y') : '—' }}</td>
                 <td class="s-{{ $p->statut }}">{{ $p->statut_label }}</td>
             </tr>

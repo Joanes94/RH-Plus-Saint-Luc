@@ -35,7 +35,7 @@
 
   /* Sidebar */
   --sidebar-w:     252px;
-  --sidebar-bg:    #141412;
+  --sidebar-bg:    #1e3a5f;
   --sidebar-text:  #c8c5be;
   --sidebar-hover: rgba(255,255,255,0.07);
   --sidebar-active:#1a5c45;
@@ -332,6 +332,7 @@ a:hover { text-decoration: underline; }
 .badge-warn   { background: var(--col-amber-lt);  color: var(--col-amber); }
 .badge-danger { background: var(--col-red-lt);    color: var(--col-red); }
 .badge-green  { background: var(--col-green-lt);  color: var(--col-green); }
+.badge-purple { background: var(--col-purple-lt); color: var(--col-purple); }
 
 .status-badge {
   padding: 3px 9px;
@@ -881,6 +882,7 @@ a:hover { text-decoration: underline; }
 .statut-inactif  { background: var(--col-red-lt);    color: var(--col-red); }
 .statut-en_conge { background: var(--col-amber-lt);  color: var(--col-amber); }
 .statut-retraite { background: var(--col-purple-lt); color: var(--col-purple); }
+.statut-ancien   { background: var(--col-border);     color: var(--col-text-2); }
 
 /* Actions icônes */
 .td-actions { display: flex; align-items: center; gap: 4px; }
@@ -949,6 +951,7 @@ a:hover { text-decoration: underline; }
   grid-template-columns: repeat(6, 1fr);
   gap: 14px;
 }
+.fg-1 { grid-column: span 1; }
 .fg-2 { grid-column: span 2; }
 .fg-3 { grid-column: span 3; }
 .fg-4 { grid-column: span 4; }

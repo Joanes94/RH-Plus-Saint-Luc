@@ -18,13 +18,15 @@
         }
 
         /* En-tête */
-        .letterhead { position: relative; text-align: center; padding-bottom: 8px; border-bottom: 2.5px solid #000; margin-bottom: 18px; min-height: 90px; }
-        .letterhead-logo-left  { position: absolute; left: -4px; top: -6px; width: 70px; height: auto; }
+        .letterhead { display: flex; align-items: center; gap: 14px; padding-bottom: 10px; border-bottom: 2.5px solid #000; margin-bottom: 18px; }
+        .lh-img-left  { width: 70px; height: 70px; object-fit: cover; flex-shrink: 0; }
+        .lh-img-right { width: 76px; height: 76px; object-fit: contain; flex-shrink: 0; }
+        .lh-center { flex: 1; text-align: center; line-height: 1.5; }
         .lh-line1 { font-size: 1.05rem; font-weight: 700; letter-spacing: .02em; margin-bottom: 1px; }
         .lh-line2 { font-size: .95rem; font-weight: 400; margin-bottom: 3px; }
         .lh-line3 { font-size: 1.05rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0; }
         .lh-line4 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
-        .lh-line5 { font-size: .82rem; line-height: 1.5; padding: 0 75px; }
+        .lh-line5 { font-size: .82rem; line-height: 1.5; color: #444; margin-top: 3px; }
 
         .doc-title {
             text-align: center;
@@ -36,36 +38,34 @@
             letter-spacing: .04em;
         }
 
-        .doc-body { font-size: .98rem; line-height: 2.2; text-align: justify; }
+        .doc-body { font-size: .98rem; line-height: 1.6; text-align: justify; }
         .doc-body .field-label {
             font-weight: 700;
             display: block;
-            margin-top: 16px;
-            margin-bottom: 4px;
+            margin-top: 18px;
+            margin-bottom: 6px;
             font-size: 1rem;
         }
         .doc-body .field-value {
-            padding-left: 30px;
-            min-height: 60px;
-            border-bottom: 1px dashed #ccc;
-            margin-bottom: 8px;
+            padding: 10px 14px;
+            min-height: 90px;
+            border: 1.3px solid #000;
+            margin-bottom: 4px;
             white-space: pre-wrap;
-        }
-        .doc-body .field-value:last-child {
-            border-bottom: none;
         }
 
         .signature-block {
             margin-top: 40px;
             text-align: right;
-            padding-right: 40px;
+            padding-right: 30px;
         }
-        .sig-lieu { font-style: italic; font-size: 11px; margin-bottom: 6px; }
+        .sig-fait { font-style: italic; font-size: .85rem; margin-bottom: 10px; }
         .sig-titre { font-weight: 700; font-size: 11px; }
-        .sig-image-wrap { text-align: center; margin: 0; line-height: 0; }
-        .sig-image { height: 130px; width: auto; max-width: 300px; object-fit: contain; display: block; margin: 0 auto; }
+        .sig-image-wrap { text-align: right; margin: 0; line-height: 0; }
+        .sig-image { height: 130px; width: auto; max-width: 300px; object-fit: contain; display: inline-block; }
         .sig-line { height: 80px; width: 240px; border-bottom: 1.5px solid #000; margin: 0 0 0 auto; }
-        .sig-name { font-weight: 700; text-align: center; margin-top: 0; text-decoration: underline; font-size: 1rem; }
+        .sig-blank { height: 90px; }
+        .sig-name { font-weight: 700; text-align: right; margin-top: 0; text-decoration: underline; font-size: 1rem; }
 
         .doc-footer {
             position: absolute; bottom: 10mm; left: 18mm; right: 18mm;
@@ -96,15 +96,17 @@
 
     {{-- En-tête --}}
     <div class="letterhead">
-        <img src="{{ $logo_b64 ?? '' }}" alt="Logo" class="letterhead-logo-left">
-        <div class="lh-line1">ARCHIDIOCESE DE COTONOU</div>
-        <div class="lh-line2">DIRECTION DIOCESAINE DE LA SANTE</div>
-        <div class="lh-line3">CENTRE DE SANTE A VOCATION HUMANITAIRE SAINT LUC</div>
-        <div class="lh-line4">C.S.V.H (ex : Hôpital Saint LUC)</div>
-        <div class="lh-line5">
-            Qtier Missèkplé Ste Rita - 01 BP 3603 Tél : 66 43 44 78 – 90 07 49 67 /
-            Email : hopitalsaintluc@gmail.com / Cotonou – BENIN
+        <img src="{{ $eveque_b64 ?? '' }}" alt="" class="lh-img-left">
+        <div class="lh-center">
+            <div class="lh-line1">ARCHIDIOCESE DE COTONOU</div>
+            <div class="lh-line2">DIRECTION DIOCESAINE DE LA SANTE</div>
+            <div class="lh-line3">CENTRE DE SANTE A VOCATION HUMANITAIRE SAINT LUC</div>
+            <div class="lh-line4">C.S.V.H (ex : Hôpital Saint LUC)</div>
+            <div class="lh-line5">
+                Qtier Missèkplé Ste Rita - 01 BP 3603 | Tél : 66 43 44 78 – 90 07 49 67 | hopitalsaintluc@gmail.com | Cotonou – BENIN
+            </div>
         </div>
+        <img src="{{ $logo_b64 ?? '' }}" alt="" class="lh-img-right">
     </div>
 
     {{-- Titre --}}
@@ -115,50 +117,35 @@
 
         {{-- Identité --}}
         <p style="font-weight:700;font-size:1rem;margin-bottom:10px;">
-            NOM : ................................................... &nbsp;&nbsp;&nbsp; <span style="font-weight:400;">{{ strtoupper($stagiaire->nom) }}</span>
-        </p>
-        <p style="font-weight:700;font-size:1rem;margin-bottom:10px;">
-            PRENOMS : ................................................. &nbsp;&nbsp;&nbsp; <span style="font-weight:400;">{{ $stagiaire->prenoms }}</span>
+            NOM : <span style="font-weight:400;">{{ strtoupper($stagiaire->nom) }}</span>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PRENOMS : <span style="font-weight:400;">{{ $stagiaire->prenoms }}</span>
         </p>
         <p style="font-weight:700;font-size:1rem;margin-bottom:20px;">
-            SERVICE : ................................................... &nbsp;&nbsp;&nbsp; <span style="font-weight:400;">{{ $stagiaire->service ?: '_________________' }}</span>
+            SERVICE : <span style="font-weight:400;">{{ $stagiaire->service ?: '—' }}</span>
         </p>
 
         {{-- I. Qualités --}}
-        <div class="field-label">I. QUALITES</div>
-        <div class="field-value">{{ $evaluation->qualites ?: '_____________________________________________' }}</div>
+        <div class="field-label">I- &nbsp;QUALITES</div>
+        <div class="field-value">{{ $evaluation->qualites ?: '' }}</div>
 
         {{-- II. Défauts --}}
-        <div class="field-label">II. DEFAUTS</div>
-        <div class="field-value">{{ $evaluation->defauts ?: '_____________________________________________' }}</div>
+        <div class="field-label">II- &nbsp;DEFAUTS</div>
+        <div class="field-value">{{ $evaluation->defauts ?: '' }}</div>
 
         {{-- III. Maîtrise de la pratique --}}
-        <div class="field-label">III. MAITRISE DE LA PRATIQUE</div>
-        <div class="field-value">{{ $evaluation->maitrise_pratique ?: '_____________________________________________' }}</div>
+        <div class="field-label">III- &nbsp;MAITRISE DE LA PRATIQUE</div>
+        <div class="field-value">{{ $evaluation->maitrise_pratique ?: '' }}</div>
 
         {{-- IV. Appréciation personnelle --}}
-        <div class="field-label">IV. APPRECIATION PERSONNELLE</div>
-        <div class="field-value">{{ $evaluation->appreciation_personnelle ?: '_____________________________________________' }}</div>
+        <div class="field-label">IV- &nbsp;APPRECIATION PERSONNELLE</div>
+        <div class="field-value">{{ $evaluation->appreciation_personnelle ?: '' }}</div>
     </div>
 
     {{-- Date et signature --}}
-    <div style="margin-top: 30px;">
-        <p style="font-size:1rem;margin-bottom:20px;">
-            Cotonou le <span style="text-decoration:underline;">{{ $date_doc }}</span>
-        </p>
-    </div>
-
     <div class="signature-block">
-        <div style="font-weight:700;text-align:center;margin-bottom:10px;">[Nom, Prénoms et Signature du chef service]</div>
-        @if($signature_url)
-            <div class="sig-image-wrap">
-                <img src="{{ $signature_url }}" alt="Signature" class="sig-image">
-            </div>
-        @else
-            <div class="sig-line"></div>
-        @endif
-        <div class="sig-name">{{ $drh_nom }}</div>
-        <div style="font-size:0.9rem;text-align:center;margin-top:2px;">{{ $drh_titre }}</div>
+        <div class="sig-fait">Cotonou le <span style="text-decoration:underline;">{{ $date_doc }}</span></div>
+        <div style="font-weight:700;margin-bottom:10px;text-decoration:underline;">Nom, Prénoms et Signature du chef service</div>
+        <div class="sig-blank"></div>
     </div>
 
     {{-- Pied de page --}}

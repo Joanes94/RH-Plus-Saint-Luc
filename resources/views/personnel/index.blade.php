@@ -84,6 +84,17 @@
     </form>
 
     <div class="toolbar-actions">
+      <form method="POST" action="{{ route('avancements.verifier') }}" class="d-inline">
+          @csrf
+          <button type="submit" class="btn-ghost btn-sm" title="Vérifie les avancements d'échelon (24 mois) et les bonifications (58 ans) dus aujourd'hui">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              Vérifier les avancements
+          </button>
+      </form>
+      <a href="{{ route('personnel.anciens') }}" class="btn-ghost btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+          Anciens travailleurs
+      </a>
       @if(auth()->user()->isAssistantRH())
         <a href="{{ route('personnel.import.form') }}" class="btn-ghost btn-sm">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -190,8 +201,8 @@
                 <td><span class="text-truncate-cell" title="{{ $p->corporation }}">{{ $p->corporation ?: '—' }}</span></td>
                 <td><span class="text-truncate-cell" title="{{ $p->service }}">{{ $p->service ?: '—' }}</span></td>
                 <td>
-                    @if($p->type_contrat)
-                        <span class="contrat-tag contrat-{{ strtolower($p->type_contrat) }}">{{ $p->type_contrat }}</span>
+                    @if($p->type_contrat_actuel)
+                        <span class="contrat-tag contrat-{{ strtolower($p->type_contrat_actuel) }}">{{ $p->type_contrat_actuel }}</span>
                     @else —
                     @endif
                 </td>
@@ -207,13 +218,6 @@
                     <a href="{{ route('personnel.edit', $p) }}" class="icon-btn" title="Modifier">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </a>
-                    <form method="POST" action="{{ route('personnel.destroy', $p) }}" class="d-inline"
-                          onsubmit="return confirm('Archiver {{ $p->nom_complet }} ?')">
-                        @csrf @method('DELETE')
-                        <button type="submit" class="icon-btn icon-btn-danger" title="Archiver">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                        </button>
-                    </form>
                 </td>
             </tr>
             @endforeach

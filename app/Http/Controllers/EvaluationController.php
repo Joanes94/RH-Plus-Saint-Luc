@@ -169,6 +169,9 @@ class EvaluationController extends Controller
         $logoPath = public_path('images/letterhead/logo_archidiocese.jpeg');
         $logoB64 = file_exists($logoPath) ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($logoPath)) : null;
 
+        $evequePath = public_path('images/letterhead/photo_eveque.jpeg');
+        $evequeB64 = file_exists($evequePath) ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($evequePath)) : null;
+
         $signaturePath = $evaluation->signature_path;
         $signatureUrl = null;
         if ($signaturePath) {
@@ -184,6 +187,7 @@ class EvaluationController extends Controller
             'stagiaire' => $evaluation->stagiaire,
             'signature_url' => $signatureUrl,
             'logo_b64' => $logoB64,
+            'eveque_b64' => $evequeB64,
             'date_doc' => now()->isoFormat('DD MMMM YYYY'),
             'ville' => ConfigRh::get('ville', 'Cotonou'),
             'drh_nom' => ConfigRh::get('drh_nom', ''),

@@ -30,7 +30,7 @@
         <div class="form-grid">
             {{-- Qualités --}}
             <div class="form-group fg-2">
-                <label>I. Qualités</label>
+                <label>I- Qualités</label>
                 <div class="input-wrapper">
                     <textarea name="qualites" rows="5" class="textarea-std">{{ old('qualites') }}</textarea>
                 </div>
@@ -39,7 +39,7 @@
 
             {{-- Défauts --}}
             <div class="form-group fg-2">
-                <label>II. Défauts</label>
+                <label>II- Défauts</label>
                 <div class="input-wrapper">
                     <textarea name="defauts" rows="5" class="textarea-std">{{ old('defauts') }}</textarea>
                 </div>
@@ -48,7 +48,7 @@
 
             {{-- Maîtrise de la pratique --}}
             <div class="form-group fg-2">
-                <label>III. Maîtrise de la pratique</label>
+                <label>III- Maîtrise de la pratique</label>
                 <div class="input-wrapper">
                     <textarea name="maitrise_pratique" rows="5" class="textarea-std">{{ old('maitrise_pratique') }}</textarea>
                 </div>
@@ -57,7 +57,7 @@
 
             {{-- Appréciation personnelle --}}
             <div class="form-group fg-2">
-                <label>IV. Appréciation personnelle</label>
+                <label>IV- Appréciation personnelle</label>
                 <div class="input-wrapper">
                     <textarea name="appreciation_personnelle" rows="5" class="textarea-std">{{ old('appreciation_personnelle') }}</textarea>
                 </div>

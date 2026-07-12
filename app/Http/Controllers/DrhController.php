@@ -17,6 +17,7 @@ class DrhController extends Controller
 
         $stats = [
             'personnel_actif'  => (clone $base)->where('statut', 'actif')->count(),
+            'anciens_travailleurs' => (clone $base)->anciensTravailleurs()->count(),
             'en_attente'       => Conge::where('statut','soumis')->count()
                                 + Absence::where('statut','soumis')->count()
                                 + Demande::where('statut','soumis')->count(),
@@ -35,12 +36,14 @@ class DrhController extends Controller
                                     ->count(),
         ];
 
+        $anciensRecents = (clone $base)->anciensTravailleurs()->orderByDesc('date_depart')->take(5)->get();
+
         $congesEnAttente   = Conge::with('personnel')->where('statut','soumis')->latest()->take(6)->get();
         $absencesEnAttente = Absence::with('personnel')->where('statut','soumis')->latest()->take(5)->get();
         $demandesEnAttente = Demande::with('personnel')->where('statut','soumis')->latest()->take(5)->get();
 
         return view('drh.dashboard', compact(
-            'stats', 'congesEnAttente', 'absencesEnAttente', 'demandesEnAttente'
+            'stats', 'congesEnAttente', 'absencesEnAttente', 'demandesEnAttente', 'anciensRecents'
         ));
     }
 

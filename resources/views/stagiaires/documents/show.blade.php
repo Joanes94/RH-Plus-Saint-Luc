@@ -48,7 +48,7 @@
 
     <div class="fiche-col">
         {{-- Actions DRH --}}
-        @if($document->statut === 'soumis')
+        @if($document->statut === 'soumis' && auth()->user()->isDRH())
         <div class="dash-card card-drh-action">
             <div class="card-header">
                 <h3>Action DRH</h3>
@@ -92,6 +92,11 @@
                     Rejeter
                 </button>
             </form>
+        </div>
+        @elseif($document->statut === 'soumis' && !auth()->user()->isDRH())
+        <div class="dash-card">
+            <div class="card-header"><h3>Statut</h3></div>
+            <p class="empty-inline">Ce document est en attente de la décision du DRH. Vous serez informé(e) dès qu'il sera traité.</p>
         </div>
         @endif
     </div>

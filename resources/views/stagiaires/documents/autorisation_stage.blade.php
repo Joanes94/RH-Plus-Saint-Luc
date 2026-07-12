@@ -10,10 +10,7 @@
      * $stagiaire    : App\Models\Stagiaire
      * $remunere     : bool (false = non rémunéré)
      */
-    $civilite = $stagiaire->sexe === 'F' ? 'Mlle' : 'M.';
-    if (($stagiaire->situation_matrimoniale ?? '') === 'Marié(e)' && $stagiaire->sexe === 'F') {
-        $civilite = 'Mme';
-    }
+    $civilite = $stagiaire->sexe === 'F' ? 'Mme' : 'M.';
     $est_femme = $stagiaire->sexe === 'F';
 
     // Objet ligne 2

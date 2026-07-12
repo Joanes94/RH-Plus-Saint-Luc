@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Stagiaire;
 use App\Models\StagiaireDocument;
+use App\Models\Evaluation;
 use App\Models\ConfigRh;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class StagiaireDocumentController extends Controller
 {
@@ -205,6 +207,89 @@ class StagiaireDocumentController extends Controller
     }
 
     /**
+     * Liste unifiée des demandes/documents de stagiaires (autorisations, attestations,
+     * fiches d'évaluation) avec leurs statuts. Consultable par l'Assistant RH et le DRH.
+     * Seul le DRH peut approuver/rejeter (via les pages de détail respectives).
+     */
+    public function demandes(Request $request)
+    {
+        $search = $request->get('search');
+        $statut = $request->get('statut');
+        $type   = $request->get('type'); // autorisation, attestation, evaluation
+
+        $items = collect();
+
+        StagiaireDocument::with('stagiaire', 'creePar', 'approuvePar')
+            ->when($type && in_array($type, ['autorisation', 'attestation']), fn($q) => $q->where('type_document', $type))
+            ->when(!$type, fn($q) => $q)
+            ->get()
+            ->each(function (StagiaireDocument $d) use ($items) {
+                if (!$d->stagiaire) return;
+                $items->push([
+                    'type_slug'    => $d->type_document,
+                    'type_label'   => $d->type_document === 'autorisation' ? 'Autorisation de stage' : 'Attestation de stage',
+                    'stagiaire'    => $d->stagiaire,
+                    'statut'       => $d->statut,
+                    'statut_label' => $d->statut_label,
+                    'statut_color' => $d->statut_color,
+                    'cree_par'     => $d->creePar,
+                    'date'         => $d->created_at,
+                    'route_show'   => route('stagiaires.documents.show', [$d->stagiaire_id, $d->id]),
+                    'route_pdf'    => $d->statut === 'approuve' ? route('stagiaires.documents.pdf', [$d->stagiaire_id, $d->id]) : null,
+                ]);
+            });
+
+        Evaluation::with('stagiaire', 'creePar', 'approuvePar')
+            ->get()
+            ->each(function (Evaluation $e) use ($items) {
+                if (!$e->stagiaire) return;
+                $items->push([
+                    'type_slug'    => 'evaluation',
+                    'type_label'   => "Fiche d'évaluation",
+                    'stagiaire'    => $e->stagiaire,
+                    'statut'       => $e->statut,
+                    'statut_label' => $e->statut_label,
+                    'statut_color' => $e->statut_color,
+                    'cree_par'     => $e->creePar,
+                    'date'         => $e->created_at,
+                    'route_show'   => route('evaluations.show', $e),
+                    'route_pdf'    => $e->statut === 'approuve' ? route('evaluations.document', $e) : null,
+                ]);
+            });
+
+        if ($type === 'evaluation') {
+            $items = $items->where('type_slug', 'evaluation');
+        }
+
+        if ($statut) {
+            $items = $items->where('statut', $statut);
+        }
+
+        if ($search) {
+            $s = \Illuminate\Support\Str::of($search)->lower()->toString();
+            $items = $items->filter(function ($i) use ($s) {
+                $nom = \Illuminate\Support\Str::of($i['stagiaire']->nom_complet ?? '')->lower()->toString();
+                return str_contains($nom, $s);
+            });
+        }
+
+        $items = $items->sortByDesc('date')->values();
+
+        $page    = (int) $request->get('page', 1);
+        $perPage = 20;
+
+        $demandes = new LengthAwarePaginator(
+            $items->forPage($page, $perPage),
+            $items->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return view('stagiaires.demandes.index', compact('demandes'));
+    }
+
+    /**
      * Page de sélection du document à générer.
      */
     public function choisir(Stagiaire $stagiaire)
@@ -218,6 +303,36 @@ class StagiaireDocumentController extends Controller
 
     /**
      * Autorisation de stage.
+     */
+    public function autorisation(Request $request, Stagiaire $stagiaire)
+    {
+        $request->validate([
+            'type' => 'required|in:professionnel,academique,decouverte',
+            'services' => 'required|array|min:1',
+            'reference' => 'nullable|string',
+        ]);
+
+        $type_stage = $request->get('type', 'professionnel');
+        $services = $request->get('services');
+        $reference = $request->filled('reference') ? $request->get('reference') : $this->generateMonthlyReference();
+
+        // Créer le document en base
+        $document = StagiaireDocument::create([
+            'stagiaire_id' => $stagiaire->id,
+            'type_document' => 'autorisation',
+            'type_stage' => $type_stage,
+            'services' => $services,
+            'reference' => $reference,
+            'statut' => 'soumis',
+            'cree_par' => Auth::id(),
+        ]);
+
+        return redirect()->route('stagiaires.documents.attente', [$stagiaire, $document])
+            ->with('success', 'Autorisation soumise au DRH pour validation.');
+    }
+
+    /**
+     * Attestation de stage.
      */
     public function attestation(Request $request, Stagiaire $stagiaire)
     {
@@ -258,12 +373,12 @@ class StagiaireDocumentController extends Controller
     }
 
     /**
-     * Page de visualisation du document (pour DRH).
+     * Page de visualisation du document.
+     * Consultable par l'Assistant RH (lecture seule) et le DRH (peut approuver/rejeter).
      */
     public function show(Stagiaire $stagiaire, StagiaireDocument $document)
     {
         abort_if($document->stagiaire_id !== $stagiaire->id, 404);
-        abort_if(!Auth::user()->isDRH(), 403, 'Seul le DRH peut voir ce document.');
 
         $document->load('stagiaire', 'creePar', 'approuvePar');
 
@@ -354,7 +469,8 @@ class StagiaireDocumentController extends Controller
 
         return view($view, array_merge(
             $base,
-            compact('document', 'stagiaire', 'service_segments', 'multi_service', 'service_phrase', 'signatureUrl')
+            compact('document', 'stagiaire', 'service_segments', 'multi_service', 'service_phrase', 'signatureUrl'),
+            ['reference' => $document->reference]
         ));
     }
 }

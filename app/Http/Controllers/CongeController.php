@@ -64,10 +64,7 @@ class CongeController extends Controller
             'annee'        => 'required|string|max:10',
         ];
 
-        // Pour maternité : date de fin obligatoire (14 semaines)
-        if ($request->type_conge === 'maternite') {
-            $rules['date_fin'] = 'required|date|after:date_debut';
-        } else {
+        if ($request->type_conge !== 'maternite') {
             $rules['nb_jours_demandes'] = 'required|integer|min:1|max:365';
         }
 
@@ -75,14 +72,20 @@ class CongeController extends Controller
 
         $personnel = Personnel::findOrFail($request->personnel_id);
 
+        if ($request->type_conge === 'maternite' && $personnel->sexe !== 'F') {
+            return back()->withInput()
+                ->withErrors(['type_conge' => 'Le congé de maternité est réservé au personnel féminin.']);
+        }
+
         // Calcul solde
         $solde = $this->cal->soldeConges($personnel, $request->annee);
 
         if ($request->type_conge === 'maternite') {
-            // Maternité : 14 semaines, dates fixes saisies par l'utilisateur
-            $dateDebut = \Carbon\Carbon::parse($request->date_debut);
-            $dateFin   = \Carbon\Carbon::parse($request->date_fin);
-            $nbJours   = 98; // 14 semaines
+            // Maternité : 98 jours calendaires (14 semaines), calcul automatique
+            $dateDebut  = \Carbon\Carbon::parse($request->date_debut);
+            $resultat   = $this->cal->calculerMaternite($dateDebut);
+            $dateFin    = $resultat['date_reprise'];
+            $nbJours    = CalendrierService::JOURS_CONGE_MATERNITE;
             $nbRestants = $solde['restants'];
         } else {
             $nbJours   = (int)$request->nb_jours_demandes;
@@ -104,7 +107,7 @@ class CongeController extends Controller
             'annee'              => $request->annee,
             'observations'       => $request->observations,
             'statut'             => $request->action === 'soumettre' ? 'soumis' : 'brouillon',
-            'created_by'         => Auth::id(),
+            'cree_par'           => Auth::id(),
         ]);
 
         return redirect()->route('conges.index')
@@ -141,11 +144,28 @@ class CongeController extends Controller
     {
         abort_if(!$conge->isEditable(), 403);
 
+        $type = $request->type_conge ?? $conge->type_conge;
+        $dateDebut = $request->date_debut ? \Carbon\Carbon::parse($request->date_debut) : $conge->date_debut;
+
+        if ($type === 'maternite') {
+            $personnel = $conge->personnel;
+            if ($personnel->sexe !== 'F') {
+                return back()->withInput()
+                    ->withErrors(['type_conge' => 'Le congé de maternité est réservé au personnel féminin.']);
+            }
+            $resultat = $this->cal->calculerMaternite($dateDebut);
+            $dateFin  = $resultat['date_reprise'];
+            $nbJours  = CalendrierService::JOURS_CONGE_MATERNITE;
+        } else {
+            $nbJours = $request->nb_jours_demandes ?? $conge->nb_jours_demandes;
+            $dateFin = $this->cal->calculerDateFin($dateDebut, (int) $nbJours);
+        }
+
         $conge->update([
-            'type_conge'        => $request->type_conge ?? $conge->type_conge,
-            'date_debut'        => $request->date_debut ?? $conge->date_debut,
-            'date_fin'          => $request->date_fin   ?? $conge->date_fin,
-            'nb_jours_demandes' => $request->nb_jours_demandes ?? $conge->nb_jours_demandes,
+            'type_conge'        => $type,
+            'date_debut'        => $dateDebut,
+            'date_fin'          => $dateFin,
+            'nb_jours_demandes' => $nbJours,
             'annee'             => $request->annee ?? $conge->annee,
             'observations'      => $request->observations,
             'statut'            => $request->action === 'soumettre' ? 'soumis' : $conge->statut,
@@ -233,15 +253,27 @@ class CongeController extends Controller
     {
         $request->validate([
             'date_debut'        => 'required|date',
-            'nb_jours_demandes' => 'required|integer|min:1',
+            'type_conge'        => 'nullable|in:administratif,technique,maternite',
+            'nb_jours_demandes' => 'required_unless:type_conge,maternite|integer|min:1',
         ]);
 
         $dateDebut = \Carbon\Carbon::parse($request->date_debut);
-        $dateFin   = $this->cal->calculerDateFin($dateDebut, (int)$request->nb_jours_demandes);
+
+        if ($request->type_conge === 'maternite') {
+            $resultat = $this->cal->calculerMaternite($dateDebut);
+            $dernierJour = $resultat['dernier_jour'];
+            $dateFin     = $resultat['date_reprise'];
+        } else {
+            $dernierJour = null;
+            $dateFin     = $this->cal->calculerDateFin($dateDebut, (int) $request->nb_jours_demandes);
+        }
 
         return response()->json([
-            'date_fin'    => $dateFin->format('Y-m-d'),
-            'date_fin_fr' => $dateFin->isoFormat('dddd D MMMM YYYY'),
+            'date_fin'          => $dateFin->format('Y-m-d'),
+            'date_fin_fr'       => $dateFin->isoFormat('dddd D MMMM YYYY'),
+            'date_fin_format'   => $dateFin->isoFormat('dddd D MMMM YYYY'),
+            'dernier_jour'      => $dernierJour?->format('Y-m-d'),
+            'dernier_jour_fr'   => $dernierJour?->isoFormat('dddd D MMMM YYYY'),
         ]);
     }
 }

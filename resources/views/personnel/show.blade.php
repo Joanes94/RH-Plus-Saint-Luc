@@ -34,8 +34,8 @@
             @if($personnel->service)
                 <span class="fiche-tag tag-green">{{ $personnel->service }}</span>
             @endif
-            @if($personnel->type_contrat)
-                <span class="contrat-tag contrat-{{ strtolower($personnel->type_contrat) }}">{{ $personnel->type_contrat }}</span>
+            @if($personnel->type_contrat_actuel)
+                <span class="contrat-tag contrat-{{ strtolower($personnel->type_contrat_actuel) }}">{{ $personnel->type_contrat_actuel }}</span>
             @endif
         </div>
     </div>
@@ -52,6 +52,19 @@
         @endif
     </div>
 </div>
+
+@if($personnel->est_ancien_travailleur)
+<div class="dash-card" style="border-left:4px solid var(--col-text-3);margin-top:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <div style="font-size:.85rem;color:var(--col-text-2)">
+        📦 <strong>Ancien travailleur</strong> — {{ $personnel->motif_depart_label }}
+        @if($personnel->date_depart) depuis le {{ $personnel->date_depart->format('d/m/Y') }} @endif
+    </div>
+    <form method="POST" action="{{ route('personnel.restaurer', $personnel) }}" onsubmit="return confirm('Restaurer {{ $personnel->nom_complet }} comme personnel actif ?')">
+        @csrf
+        <button type="submit" class="btn-primary btn-sm">Restaurer cet agent</button>
+    </form>
+</div>
+@endif
 
 {{-- ── Corps fiche (2 colonnes) ───────────────────────────────────────────── --}}
 <div class="fiche-grid">
@@ -99,19 +112,46 @@
     <div class="fiche-col">
 
         <div class="dash-card">
-            <div class="card-header"><h3>Contrat & Carrière</h3></div>
+            <div class="card-header"><h3>Carrière</h3></div>
             <dl class="detail-list">
-                <div class="dl-row"><dt>Catégorie / Échelon</dt><dd>{{ $personnel->categorie_echelon ?: '—' }}</dd></div>
                 <div class="dl-row"><dt>N° CNSS</dt><dd class="mono-text">{{ $personnel->numero_cnss ?: '—' }}</dd></div>
                 <div class="dl-row"><dt>Embauche dans le Centre</dt><dd>{{ $personnel->date_embauche_centre ? $personnel->date_embauche_centre->format('d/m/Y') : '—' }}</dd></div>
                 <div class="dl-row"><dt>Embauche dans les ISD</dt><dd>{{ $personnel->date_embauche_isd ? $personnel->date_embauche_isd->format('d/m/Y') : '—' }}</dd></div>
-                <div class="dl-row"><dt>Fin de contrat</dt><dd>{{ $personnel->date_fin_contrat ? $personnel->date_fin_contrat->format('d/m/Y') : '—' }}</dd></div>
                 <div class="dl-row"><dt>Départ à la retraite</dt><dd>{{ $personnel->date_depart_retraite ? $personnel->date_depart_retraite->format('d/m/Y') : '—' }}</dd></div>
-                @if($personnel->date_debauchage)
-                <div class="dl-row"><dt>Date de débauchage</dt><dd>{{ $personnel->date_debauchage->format('d/m/Y') }}</dd></div>
-                <div class="dl-row"><dt>Motif de débauchage</dt><dd>{{ $personnel->motif_debauchage ?: '—' }}</dd></div>
-                @endif
+                <div class="dl-row"><dt>Nationalité</dt><dd>{{ $personnel->nationalite ?: '—' }}</dd></div>
+                <div class="dl-row"><dt>Résidence</dt><dd>{{ $personnel->residence ?: '—' }}</dd></div>
             </dl>
+        </div>
+
+        <div class="dash-card">
+            <div class="card-header"><h3>Ayants droits</h3></div>
+            <p style="font-weight:600;font-size:.8rem;margin-bottom:6px">Conjoint(s)</p>
+            @forelse($personnel->conjoints as $conjoint)
+                <div class="dl-row"><dt>{{ $loop->iteration }}.</dt><dd>{{ $conjoint->prenom }} {{ strtoupper($conjoint->nom) }}</dd></div>
+            @empty
+                <p class="empty-inline">Aucun conjoint renseigné.</p>
+            @endforelse
+
+            <p style="font-weight:600;font-size:.8rem;margin:14px 0 6px">Enfants</p>
+            @forelse($personnel->enfants as $enfant)
+                <div class="dl-row">
+                    <dt>{{ $enfant->sexe === 'M' ? 'G.' : 'F.' }}{{ $loop->iteration }}</dt>
+                    <dd>
+                        {{ $enfant->prenom }} {{ strtoupper($enfant->nom) }}
+                        <span style="color:var(--col-text-3)">
+                            · {{ $enfant->sexe === 'M' ? 'Masculin' : 'Féminin' }}
+                            @if($enfant->date_naissance)
+                                · né{{ $enfant->sexe === 'F' ? 'e' : '' }} le {{ $enfant->date_naissance->format('d/m/Y') }} ({{ $enfant->age }} ans)
+                            @endif
+                            @if($enfant->age !== null && $enfant->age > \App\Models\Personnel::AGE_LIMITE_ENFANT)
+                                <span class="badge badge-warn">Hors limite d'âge</span>
+                            @endif
+                        </span>
+                    </dd>
+                </div>
+            @empty
+                <p class="empty-inline">Aucun enfant renseigné.</p>
+            @endforelse
         </div>
 
         @if($personnel->conge_annee || $personnel->conge_jours)
@@ -139,15 +179,131 @@
     </div>
 </div>
 
+{{-- ── Contrats ────────────────────────────────────────────────────────────── --}}
+<div class="dash-card" style="margin-top:8px">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <h3>Contrats ({{ $personnel->contrats->count() }})</h3>
+        <a href="{{ route('contrats.create', $personnel) }}" class="btn-primary btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nouveau contrat
+        </a>
+    </div>
+
+    @forelse($personnel->contrats as $contrat)
+    <div class="dl-row" style="align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--col-border)">
+        <dd style="width:100%">
+            <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+                <div>
+                    <span class="contrat-tag contrat-{{ strtolower($contrat->type_contrat) }}">{{ $contrat->type_contrat }}</span>
+                    <span class="badge {{ $contrat->est_en_cours ? 'badge-green' : 'badge-warn' }}">{{ $contrat->statut_label }}</span>
+                    @if($contrat->fonction) <strong>{{ $contrat->fonction }}</strong> @endif
+                    @if($contrat->centre) <span style="color:var(--col-text-3)">— {{ $contrat->centre }}</span> @endif
+                </div>
+                <div style="display:flex;gap:8px">
+                    @if(in_array($contrat->type_contrat, ['CDD','CDI','Prestataire']))
+                        <a href="{{ route('contrats.document', [$personnel, $contrat]) }}" target="_blank" class="btn-ghost btn-sm">Voir le document</a>
+                    @endif
+                    <a href="{{ route('contrats.edit', [$personnel, $contrat]) }}" class="btn-ghost btn-sm">Modifier</a>
+                    <form method="POST" action="{{ route('contrats.destroy', [$personnel, $contrat]) }}" onsubmit="return confirm('Supprimer ce contrat ?')">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="btn-ghost btn-sm" style="color:var(--col-danger, #c0392b)">Supprimer</button>
+                    </form>
+                </div>
+            </div>
+            <div style="font-size:.82rem;color:var(--col-text-2)">
+                Du {{ $contrat->date_debut->format('d/m/Y') }}
+                {{ $contrat->date_fin ? 'au ' . $contrat->date_fin->format('d/m/Y') : '· durée indéterminée' }}
+                @if($contrat->salaire_base) · {{ number_format((float)$contrat->salaire_base, 0, ',', ' ') }} FCFA/mois @endif
+                @if($contrat->type_contrat === 'Prestataire' && ($contrat->honoraire_garde || $contrat->honoraire_permanence))
+                    · Garde : {{ $contrat->honoraire_garde ? number_format((float)$contrat->honoraire_garde, 0, ',', ' ') . ' FCFA' : '—' }}
+                    · Permanence : {{ $contrat->honoraire_permanence ? number_format((float)$contrat->honoraire_permanence, 0, ',', ' ') . ' FCFA' : '—' }}
+                @endif
+                @if($contrat->categorie && $contrat->echelon) · {{ $contrat->categorie }}-{{ $contrat->echelon }} @elseif($contrat->categorie_echelon) · {{ $contrat->categorie_echelon }} @endif
+            </div>
+        </dd>
+    </div>
+    @empty
+        <p class="empty-inline">Aucun contrat enregistré pour le moment.</p>
+    @endforelse
+</div>
+
+{{-- ── Avancements (échelon / bonification) ───────────────────────────────── --}}
+<div class="dash-card" style="margin-top:8px">
+    <div class="card-header"><h3>Avancements ({{ $personnel->avancements->count() }})</h3></div>
+    @forelse($personnel->avancements as $av)
+    <div class="dl-row" style="align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--col-border)">
+        <dd style="width:100%">
+            <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                <div>
+                    <span class="badge {{ $av->type === 'bonification' ? 'badge-purple' : 'badge-green' }}">{{ $av->type_label }}</span>
+                    <span style="font-size:.82rem;color:var(--col-text-2)">{{ $av->date_effet->format('d/m/Y') }}</span>
+                    @if($av->type === 'echelon')
+                        — {{ $av->ancienne_categorie }}-{{ $av->ancien_echelon }} → <strong>{{ $av->nouvelle_categorie }}-{{ $av->nouvel_echelon }}</strong>
+                    @endif
+                    — <strong>{{ number_format($av->nouveau_salaire, 0, ',', ' ') }} FCFA</strong>
+                </div>
+                <div>
+                    <a href="{{ route('avancements.document', $av) }}" target="_blank" class="btn-ghost btn-sm">Voir la lettre</a>
+                </div>
+            </div>
+            <div style="font-size:.75rem;color:var(--col-text-3);margin-top:2px">Réf. {{ $av->numero_reference }}</div>
+        </dd>
+    </div>
+    @empty
+        <p class="empty-inline">Aucun avancement enregistré pour le moment. Ils sont générés automatiquement (tous les 2 ans d'ancienneté, ou à 58 ans).</p>
+    @endforelse
+</div>
+
 {{-- Zone danger --}}
 <div class="dash-card danger-zone" style="max-width:600px; margin-top:8px;">
     <div class="card-header"><h3 class="danger-title">Zone de danger</h3></div>
-    <p class="danger-text">Archiver cet agent le masquera de toutes les listes. L'action est réversible.</p>
-    <form method="POST" action="{{ route('personnel.destroy', $personnel) }}"
-          onsubmit="return confirm('Archiver {{ $personnel->nom_complet }} ?')">
-        @csrf @method('DELETE')
-        <button type="submit" class="btn-danger">Archiver cet agent</button>
-    </form>
+    @if($personnel->est_ancien_travailleur)
+        <p class="danger-text">Cet agent est déjà classé « Ancien travailleur ». Utilisez le bouton « Restaurer cet agent » plus haut pour le remettre actif.</p>
+    @else
+        <p class="danger-text">Archiver cet agent le déplacera vers « Anciens travailleurs ». L'action est réversible (restauration possible).</p>
+        <button type="button" class="btn-danger" onclick="document.getElementById('modal-archiver').style.display='flex'">Archiver cet agent</button>
+    @endif
+</div>
+
+{{-- ── Modal Archiver (Ancien travailleur) ────────────────────────────────── --}}
+<div id="modal-archiver" class="modal-backdrop" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3>Archiver {{ $personnel->prenoms }} {{ strtoupper($personnel->nom) }}</h3>
+            <button type="button" class="modal-close" onclick="document.getElementById('modal-archiver').style.display='none'">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('personnel.archiver', $personnel) }}">
+            @csrf
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Motif du départ <span class="req">*</span></label>
+                    <div class="input-wrapper select-wrapper">
+                        <select name="motif_depart" required>
+                            <option value="">— Sélectionner —</option>
+                            @foreach(\App\Models\Personnel::motifsDepart() as $key => $label)
+                                <option value="{{ $key }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Date de départ <span class="req">*</span></label>
+                    <div class="input-wrapper">
+                        <input type="date" name="date_depart" value="{{ date('Y-m-d') }}" required>
+                    </div>
+                </div>
+                <p style="font-size:.78rem;color:var(--col-text-2)">
+                    Cet agent apparaîtra dans « Anciens travailleurs ». Vous pourrez le restaurer à tout moment depuis sa fiche.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-ghost" onclick="document.getElementById('modal-archiver').style.display='none'">Annuler</button>
+                <button type="submit" class="btn-danger">Confirmer l'archivage</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 {{-- ── Modal Affectation ──────────────────────────────────────────────────── --}}

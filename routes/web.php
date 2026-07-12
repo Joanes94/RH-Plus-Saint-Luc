@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PersonnelController;
+use App\Http\Controllers\ContratController;
+use App\Http\Controllers\AvancementController;
 use App\Http\Controllers\StagiaireController;
 use App\Http\Controllers\StagiaireDocumentController;
 use App\Http\Controllers\CongeController;
@@ -48,6 +50,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/stagiaires',                              [StagiaireController::class, 'index'])->name('stagiaires.index');
     Route::get('/stagiaires/create',                       [StagiaireController::class, 'create'])->name('stagiaires.create');
     Route::post('/stagiaires',                             [StagiaireController::class, 'store'])->name('stagiaires.store');
+    // Doit être déclarée avant /stagiaires/{stagiaire} pour éviter le conflit de routing
+    Route::get('/stagiaires/demandes',                     [StagiaireDocumentController::class, 'demandes'])->name('stagiaires.demandes.index');
     Route::get('/stagiaires/{stagiaire}',                  [StagiaireController::class, 'show'])->name('stagiaires.show');
     Route::get('/stagiaires/{stagiaire}/edit',             [StagiaireController::class, 'edit'])->name('stagiaires.edit');
     Route::put('/stagiaires/{stagiaire}',                  [StagiaireController::class, 'update'])->name('stagiaires.update');
@@ -98,11 +102,23 @@ Route::middleware('auth')->group(function () {
     Route::get('/personnel/import',                       [PersonnelController::class, 'importForm'])->name('personnel.import.form');
     Route::post('/personnel/import',                      [PersonnelController::class, 'import'])->name('personnel.import');
     Route::get('/personnel/template',                     [PersonnelController::class, 'downloadTemplate'])->name('personnel.template');
+    Route::get('/personnel/anciens',                      [PersonnelController::class, 'anciens'])->name('personnel.anciens');
     Route::get('/personnel/{personnel}',                  [PersonnelController::class, 'show'])->name('personnel.show');
     Route::get('/personnel/{personnel}/edit',             [PersonnelController::class, 'edit'])->name('personnel.edit');
     Route::put('/personnel/{personnel}',                  [PersonnelController::class, 'update'])->name('personnel.update');
-    Route::delete('/personnel/{personnel}',               [PersonnelController::class, 'destroy'])->name('personnel.destroy');
+    Route::post('/personnel/{personnel}/archiver',        [PersonnelController::class, 'archiver'])->name('personnel.archiver');
+    Route::post('/personnel/{personnel}/restaurer',       [PersonnelController::class, 'restaurer'])->name('personnel.restaurer');
     Route::post('/personnel/{personnel}/affecter',        [PersonnelController::class, 'affecter'])->name('personnel.affecter');
+
+    // ── Contrats (plusieurs par personnel) ────────────────────────────────────
+    Route::prefix('personnel/{personnel}/contrats')->name('contrats.')->scopeBindings()->group(function () {
+        Route::get('/create',                    [ContratController::class, 'create'])->name('create');
+        Route::post('/',                          [ContratController::class, 'store'])->name('store');
+        Route::get('/{contrat}/edit',             [ContratController::class, 'edit'])->name('edit');
+        Route::put('/{contrat}',                  [ContratController::class, 'update'])->name('update');
+        Route::delete('/{contrat}',               [ContratController::class, 'destroy'])->name('destroy');
+        Route::get('/{contrat}/document',         [ContratController::class, 'document'])->name('document');
+    });
 
     // ── Congés — création/modification ouverte aux deux rôles ────────────────
     Route::get('/conges/calcul-date-fin',                 [CongeController::class, 'calculerDateFin'])->name('conges.calcul-date-fin');
@@ -145,6 +161,12 @@ Route::middleware('auth')->group(function () {
     // ── Rapports ──────────────────────────────────────────────────────────────
     Route::get('/rapports/personnel',                     [RapportController::class, 'personnel'])->name('rapports.personnel');
     Route::get('/rapports/personnel/pdf',                 [RapportController::class, 'personnelPdf'])->name('rapports.personnel.pdf');
+    Route::get('/rapports/historique',                    [RapportController::class, 'historique'])->name('rapports.historique');
+    Route::get('/rapports/historique/pdf',                [RapportController::class, 'historiquePdf'])->name('rapports.historique.pdf');
+
+    // ── Avancements (échelon / bonification) ────────────────────────────────────
+    Route::post('/avancements/verifier',                  [AvancementController::class, 'verifier'])->name('avancements.verifier');
+    Route::get('/avancements/{avancement}/document',       [AvancementController::class, 'document'])->name('avancements.document');
 
     // ── DRH ───────────────────────────────────────────────────────────────────
     Route::get('/drh/tableau-de-bord',                    [DrhController::class, 'index'])->name('drh.dashboard')->middleware('role:drh');

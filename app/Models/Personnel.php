@@ -14,7 +14,7 @@ class Personnel extends Model
 
     protected $fillable = [
         'nom', 'prenoms', 'email', 'photo_path',
-        'date_naissance', 'lieu_naissance',
+        'date_naissance', 'lieu_naissance', 'nationalite', 'residence',
         'sexe', 'telephone', 'situation_matrimoniale', 'diplome',
         'autorisation_clientele_privee',
         'corporation', 'service', 'type_contrat', 'categorie_echelon',
@@ -24,7 +24,7 @@ class Personnel extends Model
         'conge_annee', 'conge_jours',
         'contact_urgence_nom', 'contact_urgence_telephone',
         'affectation', 'date_affectation',
-        'statut', 'created_by',
+        'statut', 'motif_depart', 'date_depart', 'created_by',
     ];
 
     protected $casts = [
@@ -35,6 +35,7 @@ class Personnel extends Model
         'date_depart_retraite'   => 'date',
         'date_fin_contrat'       => 'date',
         'date_affectation'       => 'date',
+        'date_depart'            => 'date',
         'autorisation_clientele_privee' => 'boolean',
     ];
 
@@ -46,6 +47,18 @@ class Personnel extends Model
             $q->where('type_contrat', '!=', 'Stagiaire')
               ->orWhereNull('type_contrat');
         });
+    }
+
+    /** Anciens travailleurs : affectés ailleurs, contrat terminé, débauchés ou retraités. */
+    public function scopeAnciensTravailleurs($query)
+    {
+        return $query->whereIn('statut', ['ancien', 'retraite']);
+    }
+
+    /** Personnel toujours en poste (exclut les anciens travailleurs). */
+    public function scopeEnPoste($query)
+    {
+        return $query->whereNotIn('statut', ['ancien', 'retraite']);
     }
 
     // ── Listes de référence ───────────────────────────────────────────────────
@@ -139,6 +152,19 @@ class Personnel extends Model
         return ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'Veuf/Veuve'];
     }
 
+    /** Motifs possibles de passage en "Ancien travailleur". */
+    public static function motifsDepart(): array
+    {
+        return [
+            'affectation_externe' => 'Affecté(e) dans un autre hôpital',
+            'fin_contrat'         => 'Contrat terminé',
+            'debauchage'          => 'Débauché(e)',
+            'demission'           => 'Démission',
+            'retraite'            => 'Retraite',
+            'autre'               => 'Autre',
+        ];
+    }
+
     // ── Accessors ─────────────────────────────────────────────────────────────
 
     public function getNomCompletAttribute(): string
@@ -158,8 +184,19 @@ class Personnel extends Model
             'inactif'  => 'Inactif',
             'en_conge' => 'En congé',
             'retraite' => 'Retraité',
+            'ancien'   => 'Ancien travailleur',
             default    => $this->statut,
         };
+    }
+
+    public function getMotifDepartLabelAttribute(): ?string
+    {
+        return $this->motif_depart ? (self::motifsDepart()[$this->motif_depart] ?? $this->motif_depart) : null;
+    }
+
+    public function getEstAncienTravailleurAttribute(): bool
+    {
+        return in_array($this->statut, ['ancien', 'retraite']);
     }
 
     public function getPhotoUrlAttribute(): ?string
@@ -177,5 +214,64 @@ class Personnel extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function contrats()
+    {
+        return $this->hasMany(Contrat::class)->orderByDesc('date_debut');
+    }
+
+    public function avancements()
+    {
+        return $this->hasMany(Avancement::class)->orderByDesc('date_effet');
+    }
+
+    public function getAgeAttribute(): ?int
+    {
+        return $this->date_naissance ? $this->date_naissance->age : null;
+    }
+
+    /** A déjà bénéficié de la bonification des 58 ans (article 88). */
+    public function getEstBonifieAttribute(): bool
+    {
+        return $this->relationLoaded('avancements')
+            ? $this->avancements->contains('type', 'bonification')
+            : $this->avancements()->where('type', 'bonification')->exists();
+    }
+
+    public function enfants()
+    {
+        return $this->hasMany(PersonnelEnfant::class)->orderBy('date_naissance');
+    }
+
+    public function conjoints()
+    {
+        return $this->hasMany(PersonnelConjoint::class);
+    }
+
+    // ── Ayants droits ────────────────────────────────────────────────────────
+
+    /** Âge limite (en années) au-delà duquel un enfant n'est plus ayant droit. */
+    public const AGE_LIMITE_ENFANT = 21;
+
+    public function getEnfantsAyantsDroitAttribute()
+    {
+        return $this->enfants->filter(fn ($e) => $e->date_naissance && $e->date_naissance->age <= self::AGE_LIMITE_ENFANT);
+    }
+
+    // ── Contrats ─────────────────────────────────────────────────────────────
+
+    /** Contrat en cours le plus récent (ou dernier contrat en date à défaut). */
+    public function getContratActifAttribute(): ?Contrat
+    {
+        $contrats = $this->relationLoaded('contrats') ? $this->contrats : $this->contrats()->get();
+
+        return $contrats->first(fn ($c) => $c->statut === 'actif' && (!$c->date_fin || !$c->date_fin->isPast()))
+            ?? $contrats->first();
+    }
+
+    public function getTypeContratActuelAttribute(): ?string
+    {
+        return $this->contrat_actif?->type_contrat ?? $this->type_contrat;
     }
 }

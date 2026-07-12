@@ -90,12 +90,7 @@
     @yield('doc-content')
 
     {{-- SIGNATURE --}}
-    @if(!View::hasSection('doc-no-sig-date'))
-    @endif
     <div class="doc-sig-area">
-        @if(!View::hasSection('doc-fait-inline'))
-        <div class="doc-fait">{{ $ville ?? 'Cotonou' }}, le {{ $date_doc ?? now()->isoFormat('D MMMM YYYY') }}</div>
-        @endif
         <div class="sig-titre">{{ $drh_titre ?? 'Directeur des Ressources Humaines' }}</div>
         @if(!empty($signature_url))
             <img src="{{ $signature_url }}" alt="Signature" class="sig-img">

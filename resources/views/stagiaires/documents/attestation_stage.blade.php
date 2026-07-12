@@ -4,7 +4,7 @@
     $est_femme = $stagiaire->sexe === 'F';
     $civilite  = $est_femme ? 'Madame' : 'Monsieur';
     if ($stagiaire->sexe === 'F' && ($stagiaire->situation_matrimoniale ?? '') !== 'Marié(e)') {
-        $civilite = 'Mlle';
+        $civilite = 'Mme';
     }
     $il_elle = $est_femme ? 'Elle' : 'Il';
 
@@ -32,8 +32,6 @@
         }
     }
 @endphp
-
-@section('doc-fait-inline')1@endsection
 
 @section('doc-content')
 

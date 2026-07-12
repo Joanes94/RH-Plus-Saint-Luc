@@ -36,7 +36,7 @@
                 <select name="personnel_id" id="personnelSelect" class="{{ $errors->has('personnel_id') ? 'is-invalid' : '' }}" required>
                     <option value="">— Sélectionner un agent —</option>
                     @foreach($personnels as $p)
-                        <option value="{{ $p->id }}" {{ old('personnel_id') == $p->id ? 'selected' : '' }}>
+                        <option value="{{ $p->id }}" data-sexe="{{ $p->sexe }}" {{ old('personnel_id') == $p->id ? 'selected' : '' }}>
                             {{ strtoupper($p->nom) }} {{ $p->prenoms }} — {{ $p->service ?: '—' }}
                         </option>
                     @endforeach
@@ -56,7 +56,7 @@
         </div>
         <div class="tpg-items">
             @foreach($typesConge as $slug => $label)
-            <label class="type-picker-item {{ old('type_conge', 'administratif') === $slug ? 'selected' : '' }}">
+            <label class="type-picker-item {{ old('type_conge', 'administratif') === $slug ? 'selected' : '' }}" id="type-item-{{ $slug }}">
                 <input type="radio" name="type_conge" value="{{ $slug }}"
                        class="type-radio-hidden"
                        {{ old('type_conge', 'administratif') === $slug ? 'checked' : '' }}>
@@ -113,19 +113,19 @@
                 </div>
             </div>
 
-            {{-- Date de fin (maternité uniquement) --}}
+            {{-- Aperçu calculé (maternité uniquement) --}}
             <div class="form-group fg-2" id="champDateFin" style="display:none">
-                <label>Date de fin / reprise <span class="req">*</span></label>
+                <label>Date de reprise (calculée)</label>
                 <div class="input-wrapper">
-                    <input type="date" name="date_fin" id="dateFin"
-                           value="{{ old('date_fin') }}">
+                    <input type="text" id="dateFinMaternite" readonly
+                           placeholder="Saisir la date de début"
+                           style="background:var(--col-bg);color:var(--col-text-2)">
                 </div>
-                @error('date_fin') <span class="field-error">{{ $message }}</span> @enderror
             </div>
         </div>
 
-        <div id="infoMaternite" style="display:none" class="aside-card aside-info" style="margin-top:10px">
-            <p style="font-size:.83rem">Congé maternité : <strong>14 semaines</strong>. Saisissez la date de début et la date de reprise prévue.</p>
+        <div id="infoMaternite" class="aside-card aside-info" style="display:none;margin-top:10px">
+            <p style="font-size:.83rem">Congé maternité : <strong>98 jours calendaires (14 semaines)</strong>, réservé au personnel féminin. La date de reprise est calculée automatiquement (98 jours + premier jour ouvrable suivant).</p>
         </div>
     </div>
 
@@ -161,6 +161,10 @@
 
 @endsection
 
+<style>
+    .type-picker-item.disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+</style>
+
 @push('scripts')
 <script>
 // ── Type de congé → affichage conditionnel ────────────────────────────────
@@ -179,14 +183,37 @@ function toggleMaternite(isMaternite) {
     document.getElementById('infoMaternite').style.display  = isMaternite ? '' : 'none';
 
     document.querySelector('input[name="nb_jours_demandes"]').required = !isMaternite;
-    document.querySelector('input[name="date_fin"]').required = isMaternite;
+
+    if (isMaternite) calcMaternite();
 }
 
 // Init selon valeur courante
 const current = document.querySelector('.type-radio-hidden:checked');
 if (current) toggleMaternite(current.value === 'maternite');
 
-// ── Calcul automatique date de reprise ────────────────────────────────────
+// ── Restriction : congé maternité réservé au personnel féminin ────────────
+function majRestrictionMaternite() {
+    const option   = document.getElementById('personnelSelect').selectedOptions[0];
+    const sexe     = option ? option.dataset.sexe : null;
+    const itemMat  = document.getElementById('type-item-maternite');
+    const radioMat = itemMat ? itemMat.querySelector('input[type="radio"]') : null;
+    if (!itemMat || !radioMat) return;
+
+    if (sexe && sexe !== 'F') {
+        itemMat.classList.add('disabled');
+        radioMat.disabled = true;
+        if (radioMat.checked) {
+            document.querySelector('.type-radio-hidden[value="administratif"]').click();
+        }
+    } else {
+        itemMat.classList.remove('disabled');
+        radioMat.disabled = false;
+    }
+}
+document.getElementById('personnelSelect').addEventListener('change', majRestrictionMaternite);
+majRestrictionMaternite();
+
+// ── Calcul automatique date de reprise (administratif / technique) ────────
 function calcReprise() {
     const debut  = document.getElementById('dateDebut').value;
     const nbj    = document.getElementById('nbJours').value;
@@ -194,13 +221,29 @@ function calcReprise() {
 
     if (!debut || !nbj || parseInt(nbj) < 1) { output.value = ''; return; }
 
-    fetch(`{{ route('conges.calcul-date-fin') }}?date_debut=${debut}&nb_jours_demandes=${nbj}`)
+    fetch(`{{ route('conges.calcul-date-fin') }}?date_debut=${debut}&nb_jours_demandes=${nbj}&type_conge=administratif`)
         .then(r => r.json())
         .then(d => { if (d.date_fin_fr) output.value = d.date_fin_fr; })
         .catch(() => {});
 }
 
-document.getElementById('dateDebut').addEventListener('change', calcReprise);
+// ── Calcul automatique congé maternité (98 jours) ──────────────────────────
+function calcMaternite() {
+    const debut  = document.getElementById('dateDebut').value;
+    const output = document.getElementById('dateFinMaternite');
+    if (!debut || !output) return;
+
+    fetch(`{{ route('conges.calcul-date-fin') }}?date_debut=${debut}&type_conge=maternite`)
+        .then(r => r.json())
+        .then(d => { if (d.date_fin_fr) output.value = d.date_fin_fr; })
+        .catch(() => {});
+}
+
+document.getElementById('dateDebut').addEventListener('change', function () {
+    calcReprise();
+    const isMaternite = document.querySelector('.type-radio-hidden:checked')?.value === 'maternite';
+    if (isMaternite) calcMaternite();
+});
 document.getElementById('nbJours').addEventListener('input',  calcReprise);
 
 // ── Solde agent ───────────────────────────────────────────────────────────

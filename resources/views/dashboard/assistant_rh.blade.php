@@ -105,6 +105,22 @@
         </div>
     </div>
 
+    {{-- Anciens travailleurs --}}
+    <div class="kpi-card kpi-purple">
+        <div class="kpi-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
+            </svg>
+        </div>
+
+        <div class="kpi-body">
+            <div class="kpi-value">{{ $stats['anciensTravailleurs'] }}</div>
+            <div class="kpi-label">Anciens travailleurs</div>
+        </div>
+
+        <a href="{{ route('personnel.anciens') }}" class="kpi-trend">Voir la liste →</a>
+    </div>
+
 </div>
 
 <div class="dash-two-col">
@@ -230,6 +246,27 @@
             <span>Rapports PDF</span>
         </a>
     </div>
+</div>
+
+{{-- Anciens travailleurs récents --}}
+<div class="dash-card" style="margin-top:24px">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <h3>📦 Anciens travailleurs récents</h3>
+        <a href="{{ route('personnel.anciens') }}" class="btn-ghost btn-sm">Voir tout ({{ $stats['anciensTravailleurs'] }})</a>
+    </div>
+    @forelse($anciensRecents as $a)
+    <div class="dl-row" style="padding:10px 0;border-bottom:1px solid var(--col-border)">
+        <dt style="display:flex;align-items:center;gap:8px">
+            <div class="agent-avatar av-sm">{{ $a->initiales }}</div>
+            <a href="{{ route('personnel.show', $a) }}" style="text-decoration:none;color:inherit;font-weight:600">{{ $a->nom_complet }}</a>
+        </dt>
+        <dd style="color:var(--col-text-2);font-size:.82rem">
+            {{ $a->motif_depart_label }} @if($a->date_depart) · {{ $a->date_depart->format('d/m/Y') }} @endif
+        </dd>
+    </div>
+    @empty
+        <p class="empty-inline">Aucun ancien travailleur pour le moment.</p>
+    @endforelse
 </div>
 
 @endsection

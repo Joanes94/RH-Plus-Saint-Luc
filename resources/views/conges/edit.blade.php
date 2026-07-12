@@ -41,9 +41,12 @@
             <div class="form-group fg-3">
                 <label>Type de congé <span class="req">*</span></label>
                 <div class="input-wrapper select-wrapper">
-                    <select name="type_conge" required>
+                    <select name="type_conge" id="typeCongeSelect" required>
                         <option value="administratif" {{ old('type_conge', $conge->type_conge) === 'administratif' ? 'selected' : '' }}>Congé administratif</option>
                         <option value="technique"     {{ old('type_conge', $conge->type_conge) === 'technique'     ? 'selected' : '' }}>Congé technique (Radiologie)</option>
+                        @if($conge->personnel->sexe === 'F')
+                        <option value="maternite"     {{ old('type_conge', $conge->type_conge) === 'maternite'     ? 'selected' : '' }}>Congé de Maternité</option>
+                        @endif
                     </select>
                 </div>
             </div>
@@ -61,13 +64,14 @@
                            value="{{ old('date_debut', $conge->date_debut->format('Y-m-d')) }}" required>
                 </div>
             </div>
-            <div class="form-group fg-3">
+            <div class="form-group fg-3" id="champNbJours">
                 <label>Nombre de jours (ouvrables) <span class="req">*</span></label>
                 <div class="input-wrapper">
                     <input type="number" name="nb_jours_demandes" id="nbJoursInput"
                            value="{{ old('nb_jours_demandes', $conge->nb_jours_demandes) }}"
-                           min="1" max="30" required>
+                           min="1" max="30">
                 </div>
+                <span id="noteMaternite" style="display:none;font-size:.72rem;color:var(--col-text-3)">98 jours calendaires (14 semaines), calculés automatiquement.</span>
             </div>
         </div>
 
@@ -119,21 +123,37 @@
 const dateDebutInp = document.getElementById('dateDebutInput');
 const nbJoursInp   = document.getElementById('nbJoursInput');
 const anneeInp     = document.getElementById('anneeInput');
+const typeSelect   = document.getElementById('typeCongeSelect');
+
+function toggleNbJours() {
+    const isMaternite = typeSelect.value === 'maternite';
+    document.getElementById('nbJoursInput').required = !isMaternite;
+    document.getElementById('nbJoursInput').disabled  = isMaternite;
+    document.getElementById('noteMaternite').style.display = isMaternite ? '' : 'none';
+    calculerDateFin();
+}
 
 function calculerDateFin() {
     const debut = dateDebutInp.value;
+    const type  = typeSelect.value;
     const jours = nbJoursInp.value;
-    if (!debut || !jours) return;
+    if (!debut) return;
+    if (type !== 'maternite' && !jours) return;
+
     const pid   = '{{ $conge->personnel_id }}';
     const annee = anneeInp.value;
-    const url   = `{{ route('conges.calcul-date-fin') }}?date_debut=${debut}&nb_jours_demandes=${jours}&personnel_id=${pid}&annee=${annee}`;
+    let url = `{{ route('conges.calcul-date-fin') }}?date_debut=${debut}&personnel_id=${pid}&annee=${annee}&type_conge=${type}`;
+    if (type !== 'maternite') url += `&nb_jours_demandes=${jours}`;
+
     fetch(url).then(r => r.json()).then(d => {
-        document.getElementById('crDateFin').textContent = d.date_fin_format;
+        document.getElementById('crDateFin').textContent = d.date_fin_fr || d.date_fin_format;
         document.getElementById('calcResult').style.display = 'flex';
     }).catch(() => {});
 }
 
+typeSelect.addEventListener('change', toggleNbJours);
 dateDebutInp.addEventListener('change', calculerDateFin);
 nbJoursInp.addEventListener('input', calculerDateFin);
+toggleNbJours();
 </script>
 @endpush
