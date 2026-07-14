@@ -6,12 +6,35 @@ namespace App\Http\Controllers;
 use App\Models\Evaluation;
 use App\Models\Stagiaire;
 use App\Models\ConfigRh;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class EvaluationController extends Controller
 {
+    /**
+     * Génère une référence mensuelle séquentielle de type O1/07-26/AC/DDIS/CSVHHSL/DIR/DRH/ARH.
+     */
+    private function generateMonthlyReference(?Carbon $date = null, ?string $suffix = null): string
+    {
+        $date ??= now();
+        $suffix ??= 'AC/DDIS/CSVHHSL/DIR/DRH/ARH';
+
+        $period = $date->format('m-y');
+        $key    = 'evaluation_ref_counter:' . $period;
+        $ttl    = $date->copy()->endOfMonth()->endOfDay();
+
+        if (!Cache::has($key)) {
+            Cache::put($key, 0, $ttl);
+        }
+
+        $count = Cache::increment($key);
+
+        return 'O' . $count . '/' . $period . '/' . $suffix;
+    }
+
     // ── Liste ─────────────────────────────────────────────────────────────────
     public function index(Request $request)
     {
@@ -135,7 +158,7 @@ class EvaluationController extends Controller
             'approuve_par' => Auth::id(),
             'approuve_le' => now(),
             'signature_path' => $signPath,
-            'reference' => $request->reference ?? 'EVAL/' . date('m') . '-' . date('y') . '/' . $evaluation->stagiaire->nom,
+            'reference' => $request->filled('reference') ? $request->reference : $this->generateMonthlyReference(),
         ]);
 
         return redirect()->route('evaluations.show', $evaluation)

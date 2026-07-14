@@ -19,7 +19,7 @@ class Stagiaire extends Model
         'titre', 'niveau_etude', 'diplome', 'ecole_formation',
         'autorisation_clientele_privee',
         'service',
-        'date_debut_stage', 'date_fin_stage',
+        'date_debut_stage', 'date_fin_stage', 'type_stage',
         'observations',
         'contact_urgence_nom', 'contact_urgence_telephone',
         'statut', 'created_by',
@@ -46,6 +46,11 @@ class Stagiaire extends Model
     public static function situationsMatrimoniales(): array
     {
         return ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'Veuf/Veuve'];
+    }
+
+    public static function typesStage(): array
+    {
+        return ['Académique', 'Professionnel', 'Observation', 'Fin de formation', 'Autre'];
     }
 
     // ── Accessors ─────────────────────────────────────────────────────────────

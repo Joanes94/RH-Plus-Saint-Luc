@@ -62,11 +62,11 @@
     {{-- Congés en attente --}}
     <div class="dash-card">
         <div class="card-header">
-            <h3>Congés en attente</h3>
+            <h3>Demande (s) de Congés en attente</h3>
             <span class="badge badge-warn">{{ $congesEnAttente->count() }}</span>
         </div>
         @if($congesEnAttente->isEmpty())
-            <p class="empty-inline">Aucun congé en attente.</p>
+            <p class="empty-inline">Aucune demande de congé en attente.</p>
         @else
         <div class="attente-list">
             @foreach($congesEnAttente as $c)
@@ -91,11 +91,11 @@
         {{-- Absences en attente --}}
         <div class="dash-card">
             <div class="card-header">
-                <h3>Absences en attente</h3>
+                <h3>Demande (s) d'Absences en attente</h3>
                 <span class="badge badge-warn">{{ $absencesEnAttente->count() }}</span>
             </div>
             @if($absencesEnAttente->isEmpty())
-                <p class="empty-inline">Aucune absence en attente.</p>
+                <p class="empty-inline">Aucune demande d'absence en attente.</p>
             @else
             <div class="attente-list">
                 @foreach($absencesEnAttente as $a)

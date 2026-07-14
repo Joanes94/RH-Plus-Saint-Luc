@@ -24,11 +24,13 @@ class CongeController extends Controller
         $query = Conge::with('personnel');
 
         if ($request->filled('search')) {
-            $s = $request->search;
-            $query->whereHas('personnel', fn($q) =>
-                $q->where('nom', 'like', "%$s%")
-                  ->orWhere('prenoms', 'like', "%$s%")
-            );
+            $mots = preg_split('/\s+/', trim($request->search), -1, PREG_SPLIT_NO_EMPTY);
+            $query->whereHas('personnel', function ($q) use ($mots) {
+                foreach ($mots as $mot) {
+                    $q->where(fn ($qq) => $qq->where('nom', 'like', "%$mot%")
+                                              ->orWhere('prenoms', 'like', "%$mot%"));
+                }
+            });
         }
         if ($request->filled('statut')) $query->where('statut', $request->statut);
         if ($request->filled('annee'))  $query->where('annee',  $request->annee);
@@ -200,7 +202,7 @@ class CongeController extends Controller
             'approuve_par'   => Auth::id(),
             'approuve_le'    => now(),
             'signature_path' => $signPath,
-            'reference'      => $request->filled('reference') ? $request->reference : $conge->reference,
+            'reference'      => $this->doc->resolveReference($request->reference, now()),
         ]);
 
         return redirect()->route('conges.show', $conge)

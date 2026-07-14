@@ -20,14 +20,16 @@ class PersonnelController extends Controller
         }
 
         if ($request->filled('search')) {
-            $s = $request->search;
-            $query->where(function ($q) use ($s) {
-                $q->where('nom', 'like', "%$s%")
-                  ->orWhere('prenoms', 'like', "%$s%")
-                  ->orWhere('email', 'like', "%$s%")
-                  ->orWhere('numero_cnss', 'like', "%$s%")
-                  ->orWhere('telephone', 'like', "%$s%");
-            });
+            $mots = preg_split('/\s+/', trim($request->search), -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($mots as $mot) {
+                $query->where(function ($q) use ($mot) {
+                    $q->where('nom', 'like', "%$mot%")
+                      ->orWhere('prenoms', 'like', "%$mot%")
+                      ->orWhere('email', 'like', "%$mot%")
+                      ->orWhere('numero_cnss', 'like', "%$mot%")
+                      ->orWhere('telephone', 'like', "%$mot%");
+                });
+            }
         }
 
         if ($request->filled('service'))     $query->where('service', $request->service);

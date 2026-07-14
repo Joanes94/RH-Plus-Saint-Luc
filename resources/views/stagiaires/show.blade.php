@@ -52,6 +52,12 @@
             <span class="meta-val">{{ $stagiaire->duree_stage }}</span>
         </div>
         @endif
+        @if($stagiaire->type_stage)
+        <div class="fiche-meta-item">
+            <span class="meta-label">Type de stage</span>
+            <span class="meta-val">{{ $stagiaire->type_stage }}</span>
+        </div>
+        @endif
         @if($stagiaire->createdBy)
         <div class="fiche-meta-item">
             <span class="meta-label">Enregistré par</span>
@@ -123,6 +129,7 @@
                 <div class="dl-row"><dt>Date de début</dt><dd>{{ $stagiaire->date_debut_stage ? $stagiaire->date_debut_stage->isoFormat('D MMMM YYYY') : '—' }}</dd></div>
                 <div class="dl-row"><dt>Date de fin</dt><dd>{{ $stagiaire->date_fin_stage ? $stagiaire->date_fin_stage->isoFormat('D MMMM YYYY') : '—' }}</dd></div>
                 <div class="dl-row"><dt>Durée</dt><dd>{{ $stagiaire->duree_stage ?: '—' }}</dd></div>
+                <div class="dl-row"><dt>Type de stage</dt><dd>{{ $stagiaire->type_stage ?: '—' }}</dd></div>
                 @if($stagiaire->observations)
                 <div class="dl-row"><dt>Observations</dt><dd>{{ $stagiaire->observations }}</dd></div>
                 @endif

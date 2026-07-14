@@ -38,10 +38,11 @@
         .nb { font-weight:700; font-size:15px; margin-top:22px; line-height:1.65; }
 
         /* Signature */
-        .sig-wrap  { margin-top:20px; text-align:right; }
+        .sig-wrap  { margin-top:20px; width:260px; margin-left:auto; margin-right:40px; text-align:center; }
         .sig-titre { font-size:16px; font-weight:400; margin-bottom:4px; }
-        .sig-img   { height:110px; max-width:280px; object-fit:contain; display:block; margin-left:auto; }
-        .sig-line  { height:70px; width:210px; border-bottom:1.5px solid #000; margin:0 0 0 auto; }
+        .sig-img-wrap { height:78px; width:260px; overflow:hidden; display:flex; align-items:center; justify-content:center; margin:0 auto; line-height:0; }
+        .sig-img   { height:120px; width:auto; max-width:none; object-fit:contain; display:block; }
+        .sig-line  { height:70px; width:210px; border-bottom:1.5px solid #000; margin:0 auto; }
         .sig-nom   { font-weight:700; text-decoration:underline; font-size:15px; }
 
         /* Footer */
@@ -203,7 +204,7 @@
     <div class="sig-wrap">
         <div class="sig-titre">Directeur des Ressources Humaines</div>
         @if(!empty($signature_url))
-            <img src="{{ $signature_url }}" alt="Signature" class="sig-img">
+            <div class="sig-img-wrap"><img src="{{ $signature_url }}" alt="Signature" class="sig-img"></div>
         @else
             <div class="sig-line"></div>
         @endif

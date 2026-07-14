@@ -40,12 +40,12 @@
         .doc-body strong { font-weight: 700; }
         .indent-first { text-indent: 50px; }
 
-        .doc-signature-block { margin-top: 0; text-align: right; display: flex; flex-direction: column; align-items: flex-end; padding-right: 40px; }
-        .sig-title { font-weight: 700; text-align: center; margin-bottom: 6px; font-size: 1rem; }
-        .sig-image-wrap { text-align: center; margin: 0; line-height: 0; }
-        .sig-image { height: 80px; width: auto; max-width: 260px; object-fit: contain; display: block; margin: 0 auto; }
+        .doc-signature-block { margin-top: 0; width: 260px; margin-left: auto; margin-right: 40px; text-align: center; }
+        .sig-title { font-weight: 700; text-align: center; margin-bottom: 4px; font-size: 1rem; }
+        .sig-image-wrap { text-align: center; margin: 0 auto; line-height: 0; height: 78px; width: 260px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .sig-image { height: 120px; width: auto; max-width: none; object-fit: contain; display: block; }
         .sig-line  { height: 80px; width: 240px; border-bottom: 1.5px solid #000; margin: 0 0 0 auto; }
-        .sig-name  { font-weight: 700; text-align: center; margin-top: -6px; text-decoration: underline; font-size: 1rem; }
+        .sig-name  { font-weight: 700; text-align: center; margin-top: 0; text-decoration: underline; font-size: 1rem; }
 
         .doc-footer {
             position: absolute; bottom: 10mm; left: 18mm; right: 18mm;

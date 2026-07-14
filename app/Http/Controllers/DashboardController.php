@@ -32,7 +32,7 @@ class DashboardController extends Controller
             'inactifs' => (clone $base)->where('statut', 'inactif')->count(),
             'hommes'   => (clone $base)->where('statut', 'actif')->where('sexe', 'M')->count(),
             'femmes'   => (clone $base)->where('statut', 'actif')->where('sexe', 'F')->count(),
-            'totalStagiaires' => Stagiaire::count(),
+            'totalStagiaires' => Stagiaire::where('statut', 'en_cours')->count(),
             'anciensTravailleurs' => (clone $base)->anciensTravailleurs()->count(),
         ];
 

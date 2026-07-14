@@ -6,6 +6,7 @@
 
 <div class="rapport-tabs">
     <a href="{{ route('rapports.personnel') }}" class="rapport-tab rapport-tab-active">📋 Situation actuelle</a>
+    <a href="{{ route('rapports.absents') }}" class="rapport-tab">🚫 Absents du jour</a>
     <a href="{{ route('rapports.historique') }}" class="rapport-tab">🕒 Rapport historique (année / mois)</a>
 </div>
 

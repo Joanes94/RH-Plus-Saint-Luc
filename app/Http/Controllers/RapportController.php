@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Personnel;
 use App\Models\Contrat;
 use App\Models\ConfigRh;
+use App\Models\Conge;
+use App\Models\Absence;
+use App\Models\Demande;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -43,6 +46,107 @@ class RapportController extends Controller
             'stats'        => $stats,
             'apercu'       => $apercu,
         ]);
+    }
+
+    // ── Rapport "Absents du jour" ───────────────────────────────────────────────
+    // Agrège Congés, Absences et Demandes de congé maladie approuvés dont la
+    // période couvre la date sélectionnée.
+
+    public function absents(Request $request)
+    {
+        $request->validate(['date' => 'nullable|date']);
+        $date = $request->filled('date') ? Carbon::parse($request->date)->startOfDay() : now()->startOfDay();
+
+        $absents = $this->buildAbsentsList($date);
+
+        if ($request->filled('service')) {
+            $absents = $absents->filter(fn ($a) => $a['personnel']->service === $request->service);
+        }
+        if ($request->filled('sexe')) {
+            $absents = $absents->filter(fn ($a) => $a['personnel']->sexe === $request->sexe);
+        }
+
+        $absents = $absents->sortBy(fn ($a) => $a['personnel']->nom_complet)->values();
+
+        $stats = [
+            'total'  => $absents->count(),
+            'hommes' => $absents->where('personnel.sexe', 'M')->count(),
+            'femmes' => $absents->where('personnel.sexe', 'F')->count(),
+            'conge'         => $absents->where('categorie', 'Congé')->count(),
+            'absence'       => $absents->where('categorie', 'Absence')->count(),
+            'conge_maladie' => $absents->where('categorie', 'Congé maladie')->count(),
+        ];
+
+        return view('rapports.absents', [
+            'date'     => $date,
+            'absents'  => $absents,
+            'stats'    => $stats,
+            'services' => Personnel::services(),
+            'filters'  => $request->only('service', 'sexe'),
+        ]);
+    }
+
+    /**
+     * Construit la liste des agents absents à une date donnée, toutes sources
+     * confondues (congés, absences exceptionnelles, congés maladie).
+     */
+    private function buildAbsentsList(Carbon $date)
+    {
+        $absents = collect();
+
+        Conge::with('personnel')
+            ->where('statut', 'approuve')
+            ->whereDate('date_debut', '<=', $date)
+            ->whereDate('date_fin', '>=', $date)
+            ->get()
+            ->each(function (Conge $c) use ($absents) {
+                if (!$c->personnel) return;
+                $absents->push([
+                    'personnel'  => $c->personnel,
+                    'categorie'  => 'Congé',
+                    'type_label' => $c->getTypeCongeLabel(),
+                    'date_debut' => $c->date_debut,
+                    'date_fin'   => $c->date_fin,
+                    'route_show' => route('conges.show', $c),
+                ]);
+            });
+
+        Absence::with('personnel')
+            ->where('statut', 'approuve')
+            ->whereDate('date_debut', '<=', $date)
+            ->whereDate('date_fin', '>=', $date)
+            ->get()
+            ->each(function (Absence $a) use ($absents) {
+                if (!$a->personnel) return;
+                $absents->push([
+                    'personnel'  => $a->personnel,
+                    'categorie'  => 'Absence',
+                    'type_label' => $a->getTypeLabel(),
+                    'date_debut' => $a->date_debut,
+                    'date_fin'   => $a->date_fin,
+                    'route_show' => route('absences.show', $a),
+                ]);
+            });
+
+        Demande::with('personnel')
+            ->where('statut', 'approuve')
+            ->where('type_demande', 'conge_maladie')
+            ->whereDate('date_debut', '<=', $date)
+            ->whereDate('date_fin', '>=', $date)
+            ->get()
+            ->each(function (Demande $d) use ($absents) {
+                if (!$d->personnel) return;
+                $absents->push([
+                    'personnel'  => $d->personnel,
+                    'categorie'  => 'Congé maladie',
+                    'type_label' => $d->type_label,
+                    'date_debut' => $d->date_debut,
+                    'date_fin'   => $d->date_fin,
+                    'route_show' => route('demandes.show', $d),
+                ]);
+            });
+
+        return $absents;
     }
 
     /**

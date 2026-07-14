@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Tableau de bord')
-@section('page-title', 'Bonjour, {{ $user->prenoms }} 👋')
+@section('page-title', 'Vue d\'ensemble Assistant RH👋')
 
 @section('content')
 
@@ -51,7 +51,7 @@
 
         <div class="kpi-body">
             <div class="kpi-value">{{ $totalEnAttente }}</div>
-            <div class="kpi-label">En attente du DRH</div>
+            <div class="kpi-label">En attente de la décision du DRH</div>
         </div>
 
         @if($totalEnAttente > 0)
@@ -128,11 +128,11 @@
     {{-- Congés soumis --}}
     <div class="dash-card">
         <div class="card-header">
-            <h3>Congés soumis au DRH</h3>
+            <h3>Demande (s) de Congés soumise (s) au DRH</h3>
             <span class="badge badge-warn">{{ $congesPendants->count() }}</span>
         </div>
         @if($congesPendants->isEmpty())
-            <p class="empty-inline">Aucun congé en attente.</p>
+            <p class="empty-inline">Aucune demande de congé en attente.</p>
         @else
         <div class="attente-list">
             @foreach($congesPendants as $c)
@@ -157,11 +157,11 @@
         {{-- Absences soumises --}}
         <div class="dash-card">
             <div class="card-header">
-                <h3>Absences soumises au DRH</h3>
+                <h3>Demande (s) d'Absences soumises au DRH</h3>
                 <span class="badge badge-warn">{{ $absencesPendants->count() }}</span>
             </div>
             @if($absencesPendants->isEmpty())
-                <p class="empty-inline">Aucune absence en attente.</p>
+                <p class="empty-inline">Aucune demande d'absence en attente.</p>
             @else
             <div class="attente-list">
                 @foreach($absencesPendants as $a)
@@ -181,7 +181,7 @@
         {{-- Demandes soumises --}}
         <div class="dash-card">
             <div class="card-header">
-                <h3>Demandes soumises au DRH</h3>
+                <h3>Autres Demandes soumises au DRH</h3>
                 <span class="badge badge-warn">{{ $demandesPendants->count() }}</span>
             </div>
             @if($demandesPendants->isEmpty())

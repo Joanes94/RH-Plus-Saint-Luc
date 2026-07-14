@@ -76,7 +76,7 @@
                 </td>
                 <td>
                     <span class="type-tag type-{{ $c->type_conge }}">
-                        {{ $c->type_conge === 'administratif' ? 'Administratif' : 'Technique' }}
+                        {{ $c->getTypeCongeLabel() }}
                     </span>
                 </td>
                 <td>

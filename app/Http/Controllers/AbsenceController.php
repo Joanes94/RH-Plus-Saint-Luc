@@ -26,10 +26,13 @@ class AbsenceController extends Controller
         if ($request->filled('statut')) $query->where('statut', $request->statut);
         if ($request->filled('type'))   $query->where('type_absence', $request->type);
         if ($request->filled('search')) {
-            $s = $request->search;
-            $query->whereHas('personnel', fn($q) =>
-                $q->where('nom', 'like', "%$s%")->orWhere('prenoms', 'like', "%$s%")
-            );
+            $mots = preg_split('/\s+/', trim($request->search), -1, PREG_SPLIT_NO_EMPTY);
+            $query->whereHas('personnel', function ($q) use ($mots) {
+                foreach ($mots as $mot) {
+                    $q->where(fn ($qq) => $qq->where('nom', 'like', "%$mot%")
+                                              ->orWhere('prenoms', 'like', "%$mot%"));
+                }
+            });
         }
 
         $absences = $query->paginate(20)->withQueryString();

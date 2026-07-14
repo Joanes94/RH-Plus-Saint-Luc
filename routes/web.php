@@ -161,6 +161,7 @@ Route::middleware('auth')->group(function () {
     // ── Rapports ──────────────────────────────────────────────────────────────
     Route::get('/rapports/personnel',                     [RapportController::class, 'personnel'])->name('rapports.personnel');
     Route::get('/rapports/personnel/pdf',                 [RapportController::class, 'personnelPdf'])->name('rapports.personnel.pdf');
+    Route::get('/rapports/absents',                        [RapportController::class, 'absents'])->name('rapports.absents');
     Route::get('/rapports/historique',                    [RapportController::class, 'historique'])->name('rapports.historique');
     Route::get('/rapports/historique/pdf',                [RapportController::class, 'historiquePdf'])->name('rapports.historique.pdf');
 

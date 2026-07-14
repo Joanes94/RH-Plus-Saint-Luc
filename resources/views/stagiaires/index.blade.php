@@ -86,6 +86,7 @@
                 <th>Service</th>
                 <th>Période de stage</th>
                 <th>Durée</th>
+                <th>Type</th>
                 <th>Statut</th>
                 <th class="th-actions">Actions</th>
             </tr>
@@ -124,6 +125,7 @@
                     @endif
                 </td>
                 <td style="font-size:.82rem;font-weight:600">{{ $s->duree_stage ?: '—' }}</td>
+                <td style="font-size:.8rem">{{ $s->type_stage ?: '—' }}</td>
                 <td>
                     <span class="status-badge status-{{ $s->statut_color }}">{{ $s->statut_label }}</span>
                 </td>

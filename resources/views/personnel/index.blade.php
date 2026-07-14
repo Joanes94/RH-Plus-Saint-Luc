@@ -176,7 +176,7 @@
                 <th>Corporation</th>
                 <th>Service</th>
                 <th>Contrat</th>
-                <th>N° CNSS</th>
+                <th>Catégorie/Échelon</th>
                 <th>Embauche centre</th>
                 <th>Statut</th>
                 <th class="th-actions">Actions</th>
@@ -206,7 +206,12 @@
                     @else —
                     @endif
                 </td>
-                <td class="mono-text">{{ $p->numero_cnss ?: '—' }}</td>
+                <td class="mono-text">
+                    @if($p->contrat_actif?->categorie && $p->contrat_actif?->echelon)
+                        {{ $p->contrat_actif->categorie }}-{{ $p->contrat_actif->echelon }}
+                    @else —
+                    @endif
+                </td>
                 <td>{{ $p->date_embauche_centre ? $p->date_embauche_centre->format('d/m/Y') : '—' }}</td>
                 <td>
                     <span class="statut-pill statut-{{ $p->statut }}">{{ $p->statut_label }}</span>
