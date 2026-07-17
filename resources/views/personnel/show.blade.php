@@ -229,7 +229,16 @@
 
 {{-- ── Avancements (échelon / bonification) ───────────────────────────────── --}}
 <div class="dash-card" style="margin-top:8px">
-    <div class="card-header"><h3>Avancements ({{ $personnel->avancements->count() }})</h3></div>
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <h3>Avancements ({{ $personnel->avancements->count() }})</h3>
+        <form method="POST" action="{{ route('avancements.verifier-personnel', $personnel) }}">
+            @csrf
+            <button type="submit" class="btn-ghost btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                Vérifier son avancement
+            </button>
+        </form>
+    </div>
     @forelse($personnel->avancements as $av)
     <div class="dl-row" style="align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--col-border)">
         <dd style="width:100%">

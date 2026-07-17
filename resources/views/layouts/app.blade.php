@@ -151,6 +151,9 @@
             </button>
             <div class="topbar-title">@yield('page-title', 'Tableau de bord')</div>
             <div class="topbar-right">
+                @auth
+                    @include('partials.notifications_bell')
+                @endauth
                 <div class="topbar-badge">{{ auth()->user()->role === 'drh' ? 'DRH' : 'Assistant RH' }}</div>
             </div>
         </header>

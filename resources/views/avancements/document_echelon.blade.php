@@ -16,16 +16,19 @@
         .letterhead { text-align: center; padding-bottom: 8px; border-bottom: 2.5px solid #000; margin-bottom: 24px; }
         .lh-line1 { font-size: 1.05rem; font-weight: 700; }
         .lh-line2 { font-size: .82rem; margin-top: 4px; }
-        .doc-date { text-align: right; margin-bottom: 24px; }
+        .doc-date { text-align: right; margin-bottom: 6px; }
         .doc-body { font-size: .95rem; line-height: 1.7; text-align: justify; }
         .doc-body p { margin-bottom: 12px; }
-        .dest { margin-bottom: 18px; }
+        .dest { text-align: right; margin-bottom: 18px; }
         .dest .qui { font-weight: 700; }
         .ref { font-weight: 700; margin-bottom: 4px; }
         .objet { font-weight: 700; margin-bottom: 18px; }
-        .signature { margin-top: 40px; text-align: right; }
-        .signature .titre { font-weight: 700; }
-        .signature .nom { font-weight: 700; margin-top: 40px; }
+        .signature { margin-top: 40px; text-align: right; padding-right: 40px; }
+        .signature .titre { font-weight: 700; margin-bottom: 6px; }
+        .sig-image-wrap { text-align: right; margin: 0; line-height: 0; }
+        .sig-image { height: 130px; width: auto; max-width: 300px; object-fit: contain; display: block; margin: 0 0 0 auto; }
+        .sig-line { height: 80px; width: 240px; border-bottom: 1.5px solid #000; margin: 0 0 0 auto; }
+        .signature .nom { font-weight: 700; margin-top: -6px; text-decoration: underline; }
         .no-print { margin: 20px auto; max-width: 210mm; display: flex; gap: 10px; justify-content: center; }
         .btn-print { padding: 10px 24px; background: #1a5c45; color: white; border: none; border-radius: 8px; font-size: .875rem; font-weight: 600; cursor: pointer; font-family: Arial, sans-serif; }
         .btn-close { padding: 10px 20px; background: #e8e6e0; color: #1a1916; border: none; border-radius: 8px; font-size: .875rem; cursor: pointer; font-family: Arial, sans-serif; }
@@ -66,6 +69,13 @@
 
     <div class="signature">
         <div class="titre">Directeur des Ressources Humaines</div>
+        <div class="sig-image-wrap">
+            @if($signature_url)
+                <img src="{{ $signature_url }}" alt="Signature" class="sig-image">
+            @else
+                <div class="sig-line"></div>
+            @endif
+        </div>
         <div class="nom">{{ $drh_nom }}</div>
     </div>
 </div>

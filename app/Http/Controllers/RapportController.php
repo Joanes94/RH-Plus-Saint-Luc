@@ -21,6 +21,13 @@ class RapportController extends Controller
         // Stats de prévisualisation selon les filtres
         $query = $this->buildQuery($request);
 
+        // "En congé" n'est pas une valeur stockée dans personnels.statut : c'est
+        // un état calculé à partir des congés approuvés couvrant la date du jour.
+        $idsEnConge = \App\Models\Conge::where('statut', 'approuve')
+            ->whereDate('date_debut', '<=', now())
+            ->whereDate('date_fin', '>=', now())
+            ->pluck('personnel_id');
+
         $stats = [
             'total'     => (clone $query)->count(),
             'hommes'    => (clone $query)->where('sexe', 'M')->count(),
@@ -29,7 +36,7 @@ class RapportController extends Controller
             'cdd'       => (clone $query)->whereHas('contrats', fn ($q) => $q->where('type_contrat', 'CDD'))->count(),
             'actifs'    => (clone $query)->where('statut', 'actif')->count(),
             'inactifs'  => (clone $query)->where('statut', 'inactif')->count(),
-            'en_conge'  => (clone $query)->where('statut', 'en_conge')->count(),
+            'en_conge'  => (clone $query)->whereIn('id', $idsEnConge)->count(),
             'retraites' => (clone $query)->where('statut', 'retraite')->count(),
             'stagiaires' => (clone $query)->whereHas('contrats', fn ($q) => $q->where('type_contrat', 'Stagiaire'))->count(),
             'prestataires' => (clone $query)->whereHas('contrats', fn ($q) => $q->where('type_contrat', 'Prestataire'))->count(),
@@ -107,6 +114,7 @@ class RapportController extends Controller
                     'type_label' => $c->getTypeCongeLabel(),
                     'date_debut' => $c->date_debut,
                     'date_fin'   => $c->date_fin,
+                    'date_reprise'  => $c->date_fin ? $c->date_fin->copy()->addDay() : null,
                     'route_show' => route('conges.show', $c),
                 ]);
             });
@@ -124,6 +132,7 @@ class RapportController extends Controller
                     'type_label' => $a->getTypeLabel(),
                     'date_debut' => $a->date_debut,
                     'date_fin'   => $a->date_fin,
+                    'date_reprise'  => $a->date_fin ? $a->date_fin->copy()->addDay() : null,
                     'route_show' => route('absences.show', $a),
                 ]);
             });
@@ -142,6 +151,7 @@ class RapportController extends Controller
                     'type_label' => $d->type_label,
                     'date_debut' => $d->date_debut,
                     'date_fin'   => $d->date_fin,
+                    'date_reprise'  => $d->date_fin ? $d->date_fin->copy()->addDay() : null,
                     'route_show' => route('demandes.show', $d),
                 ]);
             });
@@ -157,6 +167,12 @@ class RapportController extends Controller
         $query      = $this->buildQuery($request);
         $personnels = $query->with('contrats')->orderBy('nom')->orderBy('prenoms')->get();
 
+        // Même correction que pour personnel() : "en congé" est calculé, pas stocké.
+        $idsEnConge = \App\Models\Conge::where('statut', 'approuve')
+            ->whereDate('date_debut', '<=', now())
+            ->whereDate('date_fin', '>=', now())
+            ->pluck('personnel_id');
+
         // Stats globales filtrées
         $stats = [
             'total'        => $personnels->count(),
@@ -168,7 +184,7 @@ class RapportController extends Controller
             'prestataires' => $personnels->filter(fn ($p) => $p->type_contrat_actuel === 'Prestataire')->count(),
             'actifs'       => $personnels->where('statut', 'actif')->count(),
             'inactifs'     => $personnels->where('statut', 'inactif')->count(),
-            'en_conge'     => $personnels->where('statut', 'en_conge')->count(),
+            'en_conge'     => $personnels->whereIn('id', $idsEnConge)->count(),
             'retraites'    => $personnels->where('statut', 'retraite')->count(),
         ];
 
@@ -336,7 +352,17 @@ class RapportController extends Controller
         if ($request->filled('service'))      $query->where('service', $request->service);
         if ($request->filled('corporation'))  $query->where('corporation', $request->corporation);
         if ($request->filled('sexe'))         $query->where('sexe', $request->sexe);
-        if ($request->filled('statut'))       $query->where('statut', $request->statut);
+        if ($request->filled('statut')) {
+            if ($request->statut === 'en_conge') {
+                $idsEnConge = \App\Models\Conge::where('statut', 'approuve')
+                    ->whereDate('date_debut', '<=', now())
+                    ->whereDate('date_fin', '>=', now())
+                    ->pluck('personnel_id');
+                $query->whereIn('id', $idsEnConge);
+            } else {
+                $query->where('statut', $request->statut);
+            }
+        }
         if ($request->filled('type_contrat')) {
             $t = $request->type_contrat;
             $query->where(function ($q) use ($t) {

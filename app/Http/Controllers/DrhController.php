@@ -24,7 +24,8 @@ class DrhController extends Controller
             'conges_en_cours'  => Conge::where('statut','approuve')
                                     ->whereDate('date_debut','<=',now())
                                     ->whereDate('date_fin','>=',now())
-                                    ->count(),
+                                    ->distinct('personnel_id')
+                                    ->count('personnel_id'),
             'traites_ce_mois'  => Conge::where('statut','approuve')
                                     ->whereMonth('approuve_le', now()->month)
                                     ->count()

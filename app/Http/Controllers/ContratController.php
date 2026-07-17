@@ -8,6 +8,7 @@ use App\Models\GrilleSalariale;
 use App\Models\Personnel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class ContratController extends Controller
 {
@@ -32,6 +33,169 @@ class ContratController extends Controller
 
         return redirect()->route('personnel.show', $personnel)
             ->with('success', 'Contrat ajouté avec succès.');
+    }
+
+    // ── Import Excel / CSV en masse ──────────────────────────────────────────
+    // Chaque ligne est rattachée à un personnel déjà existant, identifié par
+    // son N° CNSS (prioritaire) ou, à défaut, par nom + prénoms.
+
+    public function importForm()
+    {
+        return view('contrats.import');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'fichier' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        $file = $request->file('fichier');
+        $ext  = strtolower($file->getClientOriginalExtension());
+
+        try {
+            if ($ext === 'csv') {
+                $rows = $this->parseCsv($file->getRealPath());
+            } else {
+                if (class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
+                    $rows = $this->parseXlsx($file->getRealPath());
+                } else {
+                    return back()->with('error',
+                        'PhpSpreadsheet non installé. Utilisez le format CSV.');
+                }
+            }
+
+            $imported = 0;
+            $errors   = [];
+
+            foreach ($rows as $i => $row) {
+                $line = $i + 2;
+
+                $cnss    = trim($row['numero_cnss'] ?? '');
+                $nom     = trim($row['nom'] ?? '');
+                $prenoms = trim($row['prenoms'] ?? '');
+                if ($cnss === '' && $nom === '' && $prenoms === '') continue;
+
+                // ── Retrouver le personnel concerné ──
+                $personnel = null;
+                if ($cnss !== '') {
+                    $personnel = Personnel::where('numero_cnss', $cnss)->first();
+                }
+                if (!$personnel && $nom !== '' && $prenoms !== '') {
+                    $personnel = Personnel::whereRaw('LOWER(nom) = ?', [mb_strtolower($nom)])
+                        ->whereRaw('LOWER(prenoms) = ?', [mb_strtolower($prenoms)])
+                        ->first();
+                }
+
+                if (!$personnel) {
+                    $qui = $cnss !== '' ? "CNSS $cnss" : "$nom $prenoms";
+                    $errors[] = "Ligne $line : aucun agent trouvé pour \"$qui\".";
+                    continue;
+                }
+
+                $validator = Validator::make($row, [
+                    'type_contrat' => 'required|string|max:100',
+                    'date_debut'   => 'required|date',
+                ]);
+
+                if ($validator->fails()) {
+                    $errors[] = "Ligne $line ({$personnel->nom_complet}) : " . implode(', ', $validator->errors()->all());
+                    continue;
+                }
+
+                Contrat::create(array_merge(
+                    $this->sanitizeContratRow($row),
+                    [
+                        'personnel_id' => $personnel->id,
+                        'created_by'   => Auth::id(),
+                    ]
+                ));
+                $imported++;
+            }
+
+            $msg = "$imported contrat(s) importé(s).";
+            if ($errors) {
+                session()->flash('import_errors', $errors);
+                $msg .= ' ' . count($errors) . ' ligne(s) ignorée(s) — voir le détail ci-dessous.';
+            }
+
+            return redirect()->route('personnel.index')->with('success', $msg);
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erreur : ' . $e->getMessage());
+        }
+    }
+
+    public function downloadTemplate()
+    {
+        $headers = [
+            'numero_cnss', 'nom', 'prenoms', 'type_contrat', 'fonction', 'service',
+            'categorie', 'echelon', 'date_effet_echelon', 'centre',
+            'salaire_base', 'honoraire_garde', 'honoraire_permanence',
+            'date_debut', 'duree_mois', 'date_fin',
+            'lieu_signature', 'date_signature', 'numero_visa', 'date_visa', 'statut',
+        ];
+
+        $csv = implode(';', $headers) . "\n";
+        $csv .= implode(';', [
+            'CN123456', 'GBÈDJI', 'Rodrigue', 'CDI', 'Infirmier', 'MEDECINE',
+            'C2', '1', '2020-01-15', 'CSVH Saint Luc',
+            '75000', '5000', '3000',
+            '2020-01-15', '', '',
+            'Cotonou', '2020-01-10', '', '', 'actif',
+        ]) . "\n";
+
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="modele_import_contrats.csv"',
+        ]);
+    }
+
+    private function sanitizeContratRow(array $row): array
+    {
+        $dateFields = ['date_debut', 'date_fin', 'date_effet_echelon', 'date_signature', 'date_visa'];
+        foreach ($dateFields as $field) {
+            if (!empty($row[$field])) {
+                try { $row[$field] = \Carbon\Carbon::parse($row[$field])->format('Y-m-d'); }
+                catch (\Exception $e) { $row[$field] = null; }
+            } else { $row[$field] = null; }
+        }
+
+        $row['echelon']    = !empty($row['echelon']) ? (int) $row['echelon'] : null;
+        $row['duree_mois'] = !empty($row['duree_mois']) ? (int) $row['duree_mois'] : null;
+        $row['salaire_base']         = !empty($row['salaire_base'])         ? (float) str_replace(',', '.', $row['salaire_base'])         : null;
+        $row['honoraire_garde']      = !empty($row['honoraire_garde'])      ? (float) str_replace(',', '.', $row['honoraire_garde'])      : null;
+        $row['honoraire_permanence'] = !empty($row['honoraire_permanence']) ? (float) str_replace(',', '.', $row['honoraire_permanence']) : null;
+
+        $row['statut'] = in_array($row['statut'] ?? '', ['actif', 'termine', 'rompu']) ? $row['statut'] : 'actif';
+
+        return array_intersect_key($row, array_flip((new Contrat)->getFillable()));
+    }
+
+    private function parseCsv(string $path): array
+    {
+        $rows    = [];
+        $handle  = fopen($path, 'r');
+        $headers = null;
+        while (($line = fgetcsv($handle, 0, ';')) !== false) {
+            if (!$headers) { $headers = array_map('trim', $line); continue; }
+            if (count($line) < 2) continue;
+            $rows[] = array_combine($headers, array_pad($line, count($headers), ''));
+        }
+        fclose($handle);
+        return $rows;
+    }
+
+    private function parseXlsx(string $path): array
+    {
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+        $sheet       = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
+        $headers     = array_map('trim', array_shift($sheet));
+        $rows        = [];
+        foreach ($sheet as $line) {
+            $rows[] = array_combine($headers, array_pad($line, count($headers), ''));
+        }
+        return $rows;
     }
 
     // ── Modification ─────────────────────────────────────────────────────────

@@ -42,27 +42,12 @@
     </div>
 </div>
 
-{{-- Actions rapides DRH --}}
-<div class="table-toolbar" style="margin-top:-8px; margin-bottom:24px;">
-    <div></div>
-    <div class="toolbar-actions">
-        <a href="{{ route('personnel.import.form') }}" class="btn-ghost btn-sm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Import Excel
-        </a>
-        <a href="{{ route('personnel.create') }}" class="btn-primary btn-sm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Ajouter un agent
-        </a>
-    </div>
-</div>
-
 <div class="dash-two-col">
 
     {{-- Congés en attente --}}
     <div class="dash-card">
         <div class="card-header">
-            <h3>Demande (s) de Congés en attente</h3>
+            <h3>Demande de Congés en attente</h3>
             <span class="badge badge-warn">{{ $congesEnAttente->count() }}</span>
         </div>
         @if($congesEnAttente->isEmpty())
@@ -91,7 +76,7 @@
         {{-- Absences en attente --}}
         <div class="dash-card">
             <div class="card-header">
-                <h3>Demande (s) d'Absences en attente</h3>
+                <h3>Demande d'Absences en attente</h3>
                 <span class="badge badge-warn">{{ $absencesEnAttente->count() }}</span>
             </div>
             @if($absencesEnAttente->isEmpty())
@@ -115,7 +100,7 @@
         {{-- Demandes en attente --}}
         <div class="dash-card">
             <div class="card-header">
-                <h3>Autres demandes en attente</h3>
+                <h3>Autres Demandes en attente</h3>
                 <span class="badge badge-warn">{{ $demandesEnAttente->count() }}</span>
             </div>
             @if($demandesEnAttente->isEmpty())
@@ -146,14 +131,6 @@
         <a href="{{ route('personnel.index') }}" class="ql-item">
             <div class="ql-icon ql-blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
             <span>Personnel</span>
-        </a>
-        <a href="{{ route('personnel.create') }}" class="ql-item">
-            <div class="ql-icon ql-green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
-            <span>Ajouter un agent</span>
-        </a>
-        <a href="{{ route('personnel.import.form') }}" class="ql-item">
-            <div class="ql-icon" style="background:#ede9fe;color:#7c3aed"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-            <span>Import Excel</span>
         </a>
         <a href="{{ route('conges.create') }}" class="ql-item">
             <div class="ql-icon ql-amber"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>

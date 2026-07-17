@@ -98,6 +98,15 @@ class AvancementService
 
         $contrat->update(['salaire_base' => $nouveauSalaire]);
 
+        \App\Models\Notification::create([
+            'type'              => 'bonification',
+            'titre'             => 'Bonification (58 ans) — ' . $personnel->nom_complet,
+            'message'           => "{$personnel->nom_complet} bénéficie aujourd'hui de la bonification de l'article 88 (coefficient {$coefficient}). Nouveau salaire : " . number_format($nouveauSalaire, 0, ',', ' ') . ' FCFA.',
+            'personnel_id'      => $personnel->id,
+            'avancement_id'     => $avancement->id,
+            'date_notification' => now()->toDateString(),
+        ]);
+
         return $avancement;
     }
 
@@ -146,7 +155,90 @@ class AvancementService
 
         $contrat->update(['echelon' => $nouvelEchelon, 'salaire_base' => $caseGrille->salaire]);
 
+        \App\Models\Notification::create([
+            'type'              => 'echelon',
+            'titre'             => "Avancement d'échelon — " . $personnel->nom_complet,
+            'message'           => "{$personnel->nom_complet} passe aujourd'hui de {$contrat->categorie}-{$avancement->ancien_echelon} à {$contrat->categorie}-{$nouvelEchelon}.",
+            'personnel_id'      => $personnel->id,
+            'avancement_id'     => $avancement->id,
+            'date_notification' => now()->toDateString(),
+        ]);
+
         return $avancement;
+    }
+
+    /**
+     * Génère (si besoin) le rappel mensuel du 1er lundi du mois : liste de
+     * tout le personnel dont l'avancement d'échelon ou la bonification
+     * tombera entre aujourd'hui et la fin du mois en cours.
+     */
+    public function genererDigestMensuel(): ?\App\Models\Notification
+    {
+        $debut = now()->startOfDay();
+        $fin   = now()->copy()->endOfMonth();
+
+        // Évite les doublons si la commande tourne plusieurs fois le même mois.
+        $existe = \App\Models\Notification::where('type', 'digest_mensuel')
+            ->whereYear('date_notification', now()->year)
+            ->whereMonth('date_notification', now()->month)
+            ->exists();
+        if ($existe) return null;
+
+        $aVenir = collect();
+
+        $personnels = Personnel::whereIn('statut', ['actif', 'en_conge'])
+            ->with(['contrats' => fn ($q) => $q->orderByDesc('date_debut'), 'avancements'])
+            ->get();
+
+        foreach ($personnels as $personnel) {
+            $contrat = $personnel->contrat_actif;
+            if (!$contrat || !$contrat->categorie || !$contrat->echelon) continue;
+
+            $dejaBonifie = $personnel->avancements->contains('type', 'bonification');
+
+            if (!$dejaBonifie && $personnel->date_naissance) {
+                $dateBonif = $personnel->date_naissance->copy()->addYears(self::AGE_BONIFICATION);
+                if ($dateBonif->between($debut, $fin)) {
+                    $aVenir->push([
+                        'personnel_id' => $personnel->id,
+                        'nom'          => $personnel->nom_complet,
+                        'type'         => 'bonification',
+                        'date_prevue'  => $dateBonif->toDateString(),
+                    ]);
+                    continue; // priorité à la bonification, comme dans traiterTout()
+                }
+            }
+
+            if ((int) $contrat->echelon < GrilleSalariale::ECHELON_MAX) {
+                $dateReference = $this->dateDernierAvancementEchelon($personnel)
+                    ?? $contrat->date_effet_echelon
+                    ?? $personnel->date_embauche_centre;
+
+                if ($dateReference) {
+                    $dateEchelon = $dateReference->copy()->addMonths(self::MOIS_ENTRE_ECHELONS);
+                    if ($dateEchelon->between($debut, $fin)) {
+                        $aVenir->push([
+                            'personnel_id' => $personnel->id,
+                            'nom'          => $personnel->nom_complet,
+                            'type'         => 'echelon',
+                            'date_prevue'  => $dateEchelon->toDateString(),
+                        ]);
+                    }
+                }
+            }
+        }
+
+        if ($aVenir->isEmpty()) return null;
+
+        $aVenir = $aVenir->sortBy('date_prevue')->values();
+
+        return \App\Models\Notification::create([
+            'type'              => 'digest_mensuel',
+            'titre'             => $aVenir->count() . ' avancement(s) à venir ce mois-ci',
+            'message'           => $aVenir->map(fn ($a) => $a['nom'] . ' — ' . ($a['type'] === 'bonification' ? 'bonification' : 'échelon') . ' le ' . \Carbon\Carbon::parse($a['date_prevue'])->format('d/m'))->implode(' · '),
+            'payload'           => $aVenir->toArray(),
+            'date_notification' => now()->toDateString(),
+        ]);
     }
 
     private function dateDernierAvancementEchelon(Personnel $personnel): ?Carbon

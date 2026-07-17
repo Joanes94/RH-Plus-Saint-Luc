@@ -6,6 +6,7 @@ use App\Http\Controllers\ContratController;
 use App\Http\Controllers\AvancementController;
 use App\Http\Controllers\StagiaireController;
 use App\Http\Controllers\StagiaireDocumentController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CongeController;
 use App\Http\Controllers\AbsenceController;
 use App\Http\Controllers\DemandeController;
@@ -110,6 +111,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/personnel/{personnel}/restaurer',       [PersonnelController::class, 'restaurer'])->name('personnel.restaurer');
     Route::post('/personnel/{personnel}/affecter',        [PersonnelController::class, 'affecter'])->name('personnel.affecter');
 
+    // ── Contrats — import Excel/CSV en masse ──────────────────────────────────
+    Route::get('/contrats/import',                        [ContratController::class, 'importForm'])->name('contrats.import.form');
+    Route::post('/contrats/import',                        [ContratController::class, 'import'])->name('contrats.import');
+    Route::get('/contrats/import/modele',                  [ContratController::class, 'downloadTemplate'])->name('contrats.template');
+
     // ── Contrats (plusieurs par personnel) ────────────────────────────────────
     Route::prefix('personnel/{personnel}/contrats')->name('contrats.')->scopeBindings()->group(function () {
         Route::get('/create',                    [ContratController::class, 'create'])->name('create');
@@ -168,6 +174,10 @@ Route::middleware('auth')->group(function () {
     // ── Avancements (échelon / bonification) ────────────────────────────────────
     Route::post('/avancements/verifier',                  [AvancementController::class, 'verifier'])->name('avancements.verifier');
     Route::get('/avancements/{avancement}/document',       [AvancementController::class, 'document'])->name('avancements.document');
+
+    // ── Notifications ────────────────────────────────────────────────────────
+    Route::post('/notifications/{notification}/lue',      [NotificationController::class, 'marquerLue'])->name('notifications.lue');
+    Route::post('/notifications/lues',                    [NotificationController::class, 'marquerToutesLues'])->name('notifications.lues');
 
     // ── DRH ───────────────────────────────────────────────────────────────────
     Route::get('/drh/tableau-de-bord',                    [DrhController::class, 'index'])->name('drh.dashboard')->middleware('role:drh');

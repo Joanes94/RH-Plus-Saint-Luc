@@ -12,3 +12,8 @@ Artisan::command('inspire', function () {
 // les bonifications (58 ans, article 88). Nécessite que le scheduler Laravel
 // soit lancé côté serveur (cron : `* * * * * php artisan schedule:run`).
 Schedule::command('avancements:traiter')->dailyAt('06:00');
+
+// Rappel groupé du 1er lundi de chaque mois : avancements/bonifications à
+// venir dans le mois. `weeklyOn` cible tous les lundis, le `when` restreint
+// au premier (jour du mois <= 7).
+Schedule::command('notifications:digest')->weeklyOn(1, '06:30')->when(fn () => now()->day <= 7);

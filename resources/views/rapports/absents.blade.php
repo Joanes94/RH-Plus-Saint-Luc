@@ -125,8 +125,9 @@
                         <th>Service</th>
                         <th>Corporation</th>
                         <th>Contrat</th>
-                        <th>Motif d'absence</th>
-                        <th class="no-print">Détail</th>
+                        <th>Motif d'absence</th>          {{-- UNE SEULE COLONNE --}}
+                        <th>Date de reprise</th>
+                        <th class="no-print">Détail</th>   {{-- UNE SEULE COLONNE --}}
                     </tr>
                 </thead>
                 <tbody>
@@ -151,11 +152,12 @@
                         <td style="font-size:.8rem">{{ $a['personnel']->service ?: '—' }}</td>
                         <td style="font-size:.8rem">{{ $a['personnel']->corporation ?: '—' }}</td>
                         <td>@if($a['personnel']->type_contrat_actuel)<span class="contrat-tag contrat-{{ strtolower($a['personnel']->type_contrat_actuel) }}">{{ $a['personnel']->type_contrat_actuel }}</span>@else —@endif</td>
-                        <td>
+                        <td>   {{-- UNE SEULE CELLULE pour le motif --}}
                             <span class="demande-type-tag">{{ $a['categorie'] }}</span>
                             <div style="font-size:.75rem;color:var(--col-text-2);margin-top:2px">{{ $a['type_label'] }}</div>
                         </td>
-                        <td class="no-print">
+                        <td>{{ $a['date_reprise'] ? $a['date_reprise']->format('d/m/Y') : '—' }}</td>
+                        <td class="no-print">   {{-- UNE SEULE CELLULE pour le détail --}}
                             <a href="{{ $a['route_show'] }}" class="icon-btn" title="Voir">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             </a>
@@ -171,7 +173,7 @@
     </div>
 </div>
 
-{{-- Styles additionnels --}}
+{{-- Styles additionnels (inchangés) --}}
 <style>
     .rapport-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
     .rapport-tab {
