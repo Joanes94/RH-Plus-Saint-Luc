@@ -193,16 +193,17 @@
             </div>
         </div>
         <div class="form-group fg-2">
-            <label>Type de stage</label>
-            <div class="input-wrapper select-wrapper">
-                <select name="type_stage">
-                    <option value="">— Sélectionner —</option>
-                    @foreach(\App\Models\Stagiaire::typesStage() as $t)
-                        <option value="{{ $t }}" {{ old('type_stage', $stagiaire->type_stage ?? '') === $t ? 'selected' : '' }}>{{ $t }}</option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
+    <label>Type de stage</label>
+    <div class="input-wrapper select-wrapper">
+        <select name="type_stage" class="{{ $errors->has('type_stage') ? 'is-invalid' : '' }}">
+            <option value="">— Sélectionner —</option>
+            @foreach(\App\Models\Stagiaire::typesStage() as $t)
+                <option value="{{ $t }}" {{ old('type_stage', $stagiaire->type_stage ?? '') === $t ? 'selected' : '' }}>{{ $t }}</option>
+            @endforeach
+        </select>
+    </div>
+    @error('type_stage') <span class="field-error">{{ $message }}</span> @enderror
+</div>
         <div class="form-group fg-2">
             <label>Statut</label>
             <div class="input-wrapper select-wrapper">

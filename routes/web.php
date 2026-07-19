@@ -173,6 +173,7 @@ Route::middleware('auth')->group(function () {
 
     // ── Avancements (échelon / bonification) ────────────────────────────────────
     Route::post('/avancements/verifier',                  [AvancementController::class, 'verifier'])->name('avancements.verifier');
+    Route::post('/avancements/{personnel}/verifier',       [AvancementController::class, 'verifierPersonnel'])->name('avancements.verifier-personnel');
     Route::get('/avancements/{avancement}/document',       [AvancementController::class, 'document'])->name('avancements.document');
 
     // ── Notifications ────────────────────────────────────────────────────────

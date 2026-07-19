@@ -138,6 +138,7 @@ class StagiaireController extends Controller
             'service'                       => 'nullable|string|max:150',
             'date_debut_stage'              => 'nullable|date',
             'date_fin_stage'                => 'nullable|date|after_or_equal:date_debut_stage',
+            'type_stage'                    => 'nullable|in:Académique de découverte,Académique,Professionnel,Autre',
             'observations'                  => 'nullable|string',
             'contact_urgence_nom'           => 'nullable|string|max:150',
             'contact_urgence_telephone'     => 'nullable|string|max:20',

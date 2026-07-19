@@ -50,7 +50,7 @@ class Stagiaire extends Model
 
     public static function typesStage(): array
     {
-        return ['Académique', 'Professionnel', 'Observation', 'Fin de formation', 'Autre'];
+        return ['Académique de découverte','Académique', 'Professionnel', 'Autre'];
     }
 
     // ── Accessors ─────────────────────────────────────────────────────────────
