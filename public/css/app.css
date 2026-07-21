@@ -1154,3 +1154,11 @@ dl dd { font-size: 0.875rem; color: var(--col-text); }
 .kpi-hf-f { color: #be185d; }
 .kpi-hf-sep { color: #9b9790; }
 .agent-photo { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid #d4d0c8; }
+
+.fiche-avatar-photo {
+    width: 32px;   /* adapte à la taille réelle de .fiche-avatar si différente */
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}

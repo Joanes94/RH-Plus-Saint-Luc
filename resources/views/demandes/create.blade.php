@@ -70,15 +70,15 @@
                 <select name="personnel_id" id="personnelSelect" required>
                     <option value="">— Choisir —</option>
                     @foreach($personnels as $p)
-                        <option value="{{ $p->id }}"
-                            data-contrat="{{ $p->type_contrat }}"
-                            data-sexe="{{ $p->sexe }}"
-                            data-corp="{{ $p->corporation }}"
-                            data-service="{{ $p->service }}"
-                            {{ old('personnel_id') == $p->id ? 'selected' : '' }}>
-                            {{ $p->nom_complet }}
-                            ({{ $p->type_contrat ?: 'Sans contrat' }} — {{ $p->service ?: $p->corporation ?: '—' }})
-                        </option>
+                       <option value="{{ $p->id }}"
+                          data-contrat="{{ $p->type_contrat_actuel }}"
+                          data-sexe="{{ $p->sexe }}"
+                          data-corp="{{ $p->corporation }}"
+                          data-service="{{ $p->service }}"
+                          {{ old('personnel_id') == $p->id ? 'selected' : '' }}>
+                          {{ $p->nom_complet }}
+                          ({{ $p->type_contrat_actuel ?: 'Sans contrat' }} — {{ $p->service ?: $p->corporation ?: '—' }})
+                       </option>
                     @endforeach
                 </select>
             </div>

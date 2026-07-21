@@ -65,12 +65,16 @@
             <tr>
                 <td>
                     <div class="agent-cell">
-                        <div class="agent-avatar av-sm">{{ $d['stagiaire']->initiales }}</div>
-                        <div>
-                            <div class="agent-name">{{ $d['stagiaire']->nom_complet }}</div>
-                            <div class="agent-meta">{{ $d['stagiaire']->ecole_formation ?: ($d['stagiaire']->service ?: '—') }}</div>
-                        </div>
-                    </div>
+    @if($d['stagiaire']->photo_url)
+        <img src="{{ $d['stagiaire']->photo_url }}" alt="{{ $d['stagiaire']->nom_complet }}" class="agent-photo">
+    @else
+        <div class="agent-avatar av-sm">{{ $d['stagiaire']->initiales }}</div>
+    @endif
+    <div>
+        <div class="agent-name">{{ $d['stagiaire']->nom_complet }}</div>
+        <div class="agent-meta">{{ $d['stagiaire']->ecole_formation ?: ($d['stagiaire']->service ?: '—') }}</div>
+    </div>
+</div>
                 </td>
                 <td>
                     <span class="demande-type-tag">{{ $d['type_label'] }}</span>

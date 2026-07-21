@@ -71,12 +71,16 @@
             <tr>
                 <td>
                     <div class="agent-cell">
-                        <div class="agent-avatar av-sm">{{ $d->personnel->initiales }}</div>
-                        <div>
-                            <div class="agent-name">{{ $d->personnel->nom_complet }}</div>
-                            <div class="agent-meta">{{ $d->personnel->service ?: '—' }}</div>
-                        </div>
-                    </div>
+    @if($d->personnel->photo_url)
+        <img src="{{ $d->personnel->photo_url }}" alt="{{ $d->personnel->nom_complet }}" class="agent-photo">
+    @else
+        <div class="agent-avatar av-sm">{{ $d->personnel->initiales }}</div>
+    @endif
+    <div>
+        <div class="agent-name">{{ $d->personnel->nom_complet }}</div>
+        <div class="agent-meta">{{ $d->personnel->service ?: '—' }}</div>
+    </div>
+</div>
                 </td>
                 <td>
                     <span class="demande-type-tag">{{ $d->type_label }}</span>
